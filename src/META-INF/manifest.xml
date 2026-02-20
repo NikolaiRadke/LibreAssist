@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest:manifest xmlns:manifest="http://openoffice.org/2001/manifest">
+    <manifest:file-entry manifest:media-type="application/vnd.sun.star.uno-component;type=Python"
+                         manifest:full-path="main.py"/>
+    <manifest:file-entry manifest:media-type="application/vnd.sun.star.uno-pythonpath"
+                         manifest:full-path="pythonpath/"/>
+    <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data"
+                         manifest:full-path="Sidebar.xcu"/>
+    <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data"
+                         manifest:full-path="Factory.xcu"/>
+    <manifest:file-entry manifest:media-type="application/json"
+                         manifest:full-path="locales/en.json"/>
+    <manifest:file-entry manifest:media-type="application/json"
+                         manifest:full-path="locales/de.json"/>
+    <manifest:file-entry manifest:media-type="image/png"
+                         manifest:full-path="icons/logo-32.png"/>
+    <manifest:file-entry manifest:media-type="image/png"
+                         manifest:full-path="icons/logo-48.png"/>
+</manifest:manifest>

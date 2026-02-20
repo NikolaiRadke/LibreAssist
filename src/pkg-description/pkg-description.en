@@ -1,0 +1,10 @@
+LibreAssist - AI-Powered Writing Assistant for LibreOffice
+
+LibreAssist is an extension that brings AI-powered writing assistance directly into LibreOffice Writer.
+
+Features (planned):
+- Session-aware chat with AI
+- Direct document manipulation
+- Support for multiple LLM providers
+
+This is the initial version (0.1.0) with basic functionality.
