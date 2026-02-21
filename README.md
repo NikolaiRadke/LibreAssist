@@ -1,4 +1,4 @@
-![LIbreAssist](https://www.nikolairadke.de/aiduino/libreassist_banner.png) 
+![LIbreAssist](https://www.nikolairadke.de/aiduino/libreassist_banner2.png) 
 # LibreAssist
 
 **AI-powered Writing Assistant for LibreOffice**
