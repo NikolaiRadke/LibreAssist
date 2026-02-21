@@ -129,7 +129,7 @@ LibreAssist automatically discovers installed CLI providers by searching:
 
 ## Links
 
-- **AI.duino**: [https://github.com/NikolaiRadke/AIduino](https://github.com/NikolaiRadke/AIduino)
+- **AI.duino**: [https://github.com/NikolaiRadke/AI.duino](https://github.com/NikolaiRadke/AI.duino)
 
 ## Contributing
 
