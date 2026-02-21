@@ -1,18 +1,18 @@
 ![LIbreAssist](https://www.nikolairadke.de/aiduino/libreassist_banner2.png) 
 # LibreAssist
 
-**AI-powered Writing Assistant for LibreOffice**
+**AI-powered Agentic Writing Assistant for LibreOffice**
 
-LibreAssist is a LibreOffice extension that brings AI-powered writing assistance directly into your documents. Unlike traditional copy-paste solutions, LibreAssist provides true "Agentic Writing" - AI tools that can directly manipulate your documents through command-line interfaces.
+LibreAssist is a LibreOffice extension that brings AI-powered writing assistance directly into your documents. Unlike traditional copy-paste solutions, LibreAssist provides true **Agentic Writing** - AI tools that can directly manipulate your documents through command-line interfaces, even design.
 
 ## Features
 
 - 🤖 **Multi-Provider Support** - Works with Claude Code CLI and Codex CLI
 - 💬 **Session-Based Conversations** - Maintains context across multiple interactions
-- ✏️ **Direct Document Manipulation** - AI writes directly into your documents, no copy-paste needed
+- ✏️ **Direct Document Manipulation** - AI writes directly into your document, even design elements
 - ↩️ **Undo/Redo System** - Full backup and restore capabilities for AI changes
 - 💾 **Persistent Chat History** - Conversations are saved per document
-- 🌍 **Multilingual** - English and German localization included
+- 🌍 **Multilingual** - English and German localization included, more will followe
 - 🔄 **Provider Switching** - Easy switching between different AI providers
 - ⚙️ **Configurable Timeouts** - Adjust processing timeouts as needed
 
@@ -22,12 +22,12 @@ LibreAssist is a LibreOffice extension that brings AI-powered writing assistance
 
 - **Claude Code CLI** - Anthropic's Claude via command-line interface
   - Install: `npm install -g @anthropic-ai/claude-code`
-  - Supports .odt files natively
+  - Supports LibreOffice files natively
 
 - **Codex CLI** - OpenAI's GPT models via command-line interface
   - Install: Follow instructions at [github.com/microsoft/codex-cli](https://github.com/microsoft/codex-cli)
   - Requires Node.js v20+
-  - Supports .odt files natively
+  - Supports LibreOffice files natively
 
 ### ❌ Tested But Not Compatible
 
@@ -37,11 +37,12 @@ The following providers were tested but **cannot edit LibreOffice .odt files**:
 - **Groq Code** - Groq's LPU-accelerated models  
 - **Mistral Vibe** - Mistral AI models
 
-These providers work for chat-only interactions but lack the ability to manipulate LibreOffice document formats.
+These providers work for chat-only interactions but lack the ability to manipulate LibreOffice document formats. 
+For use with API Providers, there are many ohter extensions, like [LibreThinker](https://github.com/mihailthebuilder/librethinker-extension)  
 
 ## Requirements
 
-- **LibreOffice** 24.2.0 or newer
+- **LibreOffice**
 - **Python** 3.8+ (embedded in LibreOffice)
 - **At least one supported CLI provider** (Claude Code or Codex CLI)
 - **Node.js v20+** (required for Codex CLI only)
