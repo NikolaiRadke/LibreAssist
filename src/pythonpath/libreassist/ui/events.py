@@ -278,3 +278,23 @@ class SaveAsListener(unohelper.Base, XDocumentEventListener):
     
     def disposing(self, event):
         pass
+
+class InstructionsChangeListener(unohelper.Base, XTextListener):
+    """
+    Handles custom instructions field changes.
+    """
+    
+    def __init__(self, factory):
+        self.factory = factory
+        
+    def textChanged(self, event):
+        try:
+            globalSettings = lib_settings.loadGlobalSettings()
+            instructionsField = self.factory.panelWin.getControl("InstructionsField")
+            globalSettings["custom_instructions"] = instructionsField.getText()
+            lib_settings.saveGlobalSettings(globalSettings)
+        except Exception as e:
+            print(f"Error saving instructions: {e}")
+            
+    def disposing(self, event):
+        pass

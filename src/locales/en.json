@@ -32,5 +32,7 @@
   "clear_history_success_title": "History Cleared",
   "clear_history_success": "Chat history has been cleared successfully.",
   "clear_history_error": "Failed to clear history: {error}",
-  "error_title": "Error"
+  "error_title": "Error",
+  "settings_custom_instructions": "Custom Instructions",
+  "settings_custom_instructions_hint": "These instructions will be included in every request (e.g., 'Always use German umlauts' or 'Keep tone professional')"
 }

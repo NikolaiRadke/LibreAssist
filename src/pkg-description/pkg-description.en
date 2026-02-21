@@ -1,10 +1,12 @@
-LibreAssist - AI-Powered Writing Assistant for LibreOffice
+LibreAssist - AI-powered Agentic Writing for LibreOffice
 
-LibreAssist is an extension that brings AI-powered writing assistance directly into LibreOffice Writer.
+LibreAssist is a LibreOffice extension that brings agentic AI writing assistance directly into your documents. Instead of a simple chat interface, the AI works directly on your files.
 
-Features (planned):
-- Session-aware chat with AI
-- Direct document manipulation
-- Support for multiple LLM providers
+Features:
+- Agentic document editing via Claude Code CLI and Codex CLI
+- Session-aware chat with persistent conversation history
+- Undo/Redo for AI changes
+- Custom instructions for every request
+- Multi-language support (English, German)
 
-This is the initial version (0.1.0) with basic functionality.
+Requires a paid API key for Claude or OpenAI Codex.

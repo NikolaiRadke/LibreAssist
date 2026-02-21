@@ -148,8 +148,12 @@ def callLLM(providerModule, userPrompt, currentHistory=""):
         settingsData = settings.loadSettings()
         sessionId = settingsData.get("session_ids", {}).get(providerModule.NAME)
 
+        # Load custom instructions
+        globalSettings = settings.loadGlobalSettings()
+        customInstructions = globalSettings.get("custom_instructions", "").strip()
+
         # Build full prompt with document context
-        fullPrompt = (
+        basePrompt = (
             f"You have access to {filename} in the current directory. "
             f"User request: {userPrompt}. "
             "IMPORTANT: Write your response directly into the document by editing the file, "
@@ -157,6 +161,11 @@ def callLLM(providerModule, userPrompt, currentHistory=""):
             "For content creation, editing, or writing tasks, always modify the document directly. "
             "Response format: Plain text only, no Markdown."
         )
+
+        if customInstructions:
+            fullPrompt = f"{basePrompt}\n\nMANDATORY: Apply these rules to your response:\n{customInstructions}"
+        else:
+            fullPrompt = basePrompt
 
         try:
             result = provider_base.executeProvider(

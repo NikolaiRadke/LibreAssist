@@ -32,5 +32,7 @@
   "clear_history_success_title": "Verlauf gelöscht",
   "clear_history_success": "Der Chat-Verlauf wurde erfolgreich gelöscht.",
   "clear_history_error": "Fehler beim Löschen des Verlaufs: {error}",
-  "error_title": "Fehler"
+  "error_title": "Fehler",
+  "settings_custom_instructions": "Eigene Anweisungen",
+  "settings_custom_instructions_hint": "Diese Anweisungen werden bei jeder Anfrage mitgesendet (z.B. 'Deutsche Umlaute verwenden' oder 'Professioneller Ton')"
 }

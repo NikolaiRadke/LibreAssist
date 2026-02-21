@@ -7,7 +7,7 @@ import unohelper
 from com.sun.star.ui import XUIElementFactory
 from libreassist import core, settings as lib_settings, i18n, document
 from .ui import LibreAssistPanel, getLocalizedString
-from .events import ActionEventHandler, ProviderChangeListener, TimeoutChangeListener, SaveAsListener
+from .events import ActionEventHandler, ProviderChangeListener, TimeoutChangeListener, SaveAsListener, InstructionsChangeListener
 
 
 class ElementFactory(unohelper.Base, XUIElementFactory):
@@ -18,7 +18,8 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
     # View control groups
     _CHAT_CONTROLS = ["ChatHistory", "InputField", "SendButton", "InfoLabel"]
     _SETTINGS_CONTROLS = ["ProviderLabel", "ProviderList", "TimeoutLabel", "TimeoutField",
-                          "ResetSessionButton", "ClearHistoryButton"]
+                          "ResetSessionButton", "ClearHistoryButton",
+                          "InstructionsLabel", "InstructionsField"]
     _ABOUT_CONTROLS = ["AboutLogo", "AboutText"]
 
     def __init__(self, ctx):
@@ -89,6 +90,15 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
             
             # Register document listener
             self._registerDocumentListener()
+
+            # Scroll chat history to end after reload
+            historyControl = panelWin.getControl("ChatHistory")
+            model = historyControl.getModel()
+            model.ReadOnly = False
+            textLength = len(loadedHistory)
+            historyControl.setSelection(uno.createUnoStruct(
+                "com.sun.star.awt.Selection", textLength, textLength))
+            model.ReadOnly = True
 
             return 690
 
@@ -260,12 +270,37 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         timeoutFieldModel.DecimalAccuracy = 0
         dialogModel.insertByName("TimeoutField", timeoutFieldModel)
 
+        # Custom Instructions Label
+        instructionsLabelModel = dialogModel.createInstance(
+            "com.sun.star.awt.UnoControlFixedTextModel")
+        instructionsLabelModel.Name = "InstructionsLabel"
+        instructionsLabelModel.PositionX = 10
+        instructionsLabelModel.PositionY = 135  # After timeout field
+        instructionsLabelModel.Width = 130
+        instructionsLabelModel.Height = 15
+        instructionsLabelModel.Label = getLocalizedString("settings_custom_instructions")
+        dialogModel.insertByName("InstructionsLabel", instructionsLabelModel)
+        
+        # Custom Instructions TextArea
+        instructionsFieldModel = dialogModel.createInstance(
+            "com.sun.star.awt.UnoControlEditModel")
+        instructionsFieldModel.Name = "InstructionsField"
+        instructionsFieldModel.PositionX = 10
+        instructionsFieldModel.PositionY = 152
+        instructionsFieldModel.Width = 130
+        instructionsFieldModel.Height = 60
+        instructionsFieldModel.MultiLine = True
+        instructionsFieldModel.VerticalAlign = "TOP"
+        instructionsFieldModel.AutoVScroll = True
+        instructionsFieldModel.Text = globalSettings.get("custom_instructions", "")
+        dialogModel.insertByName("InstructionsField", instructionsFieldModel)
+
         # Reset session button
         resetSessionModel = dialogModel.createInstance("com.sun.star.awt.UnoControlButtonModel")
         resetSessionModel.Name = "ResetSessionButton"
         resetSessionModel.TabIndex = 6
         resetSessionModel.PositionX = 10
-        resetSessionModel.PositionY = 140
+        resetSessionModel.PositionY = 220
         resetSessionModel.Width = 130
         resetSessionModel.Height = 23
         resetSessionModel.Label = getLocalizedString("settings_reset_session", "Reset Session")
@@ -276,7 +311,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         clearHistoryModel.Name = "ClearHistoryButton"
         clearHistoryModel.TabIndex = 7
         clearHistoryModel.PositionX = 10
-        clearHistoryModel.PositionY = 170
+        clearHistoryModel.PositionY = 250
         clearHistoryModel.Width = 130
         clearHistoryModel.Height = 23
         clearHistoryModel.Label = getLocalizedString("settings_clear_history", "Clear History")
@@ -328,6 +363,9 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         # Timeout change listener
         panelWin.getControl("TimeoutField").addTextListener(TimeoutChangeListener(self))
 
+        # Custom Instructions change listener
+        panelWin.getControl("InstructionsField").addTextListener(InstructionsChangeListener(self))
+
     def _initializeViewState(self, globalSettings, docSettings):
         """Initialize UI view state and control visibility."""
         
@@ -340,9 +378,13 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         if currentProvider in self.providerNames:
             providerList = self.panelWin.getControl("ProviderList")
             providerList.selectItemPos(self.providerNames.index(currentProvider), True)
+
+        # Load custom instructions
+        instructionsField = self.panelWin.getControl("InstructionsField")
+        instructionsField.setText(globalSettings.get("custom_instructions", ""))
         
         # Hide back button initially
-        self.panelWin.getControl("BackButton").setVisible(False)
+        self.panelWin.getControl("BackButton").getModel().Enabled = False
 
     def _registerDocumentListener(self):
         """Register listener for document Save As events."""
@@ -369,6 +411,6 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
             self.panelWin.getControl(name).setVisible(view == "about")
         
         # Back button visible in Settings/About, hidden in Chat
-        self.panelWin.getControl("BackButton").setVisible(view != "chat")
+        self.panelWin.getControl("BackButton").getModel().Enabled = (view != "chat")
         
         self.currentView = view

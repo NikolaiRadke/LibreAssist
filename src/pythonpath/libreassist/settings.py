@@ -149,7 +149,8 @@ def loadGlobalSettings():
     defaults = {
         "discovered_providers": {},
         "default_provider": "claude_code",
-        "timeout": 600
+        "timeout": 600,
+        "custom_instructions": ""
     }
     
     try:
