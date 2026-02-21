@@ -38,7 +38,7 @@ The following providers were tested but **cannot edit LibreOffice .odt files**:
 - **Mistral Vibe** - Mistral AI models
 
 These providers work for chat-only interactions but lack the ability to manipulate LibreOffice document formats. 
-For use with API Providers, there are many ohter extensions, like [LibreThinker](https://github.com/mihailthebuilder/librethinker-extension)  
+For use with API Providers, there are many ohter extensions, like [LibreThinker](https://github.com/mihailthebuilder/librethinker-extension).  
 
 ## Requirements
 
