@@ -341,3 +341,17 @@ def migrateSettingsIfNeeded(oldPath, newPath):
         print(f"Error migrating settings: {e}")
         import traceback
         traceback.print_exc()
+
+def deleteAllData():
+    """Delete the complete libreassist data directory."""
+    try:
+        import shutil
+        import os
+        baseDir = getLibreAssistDir()
+        if baseDir and os.path.exists(baseDir):
+            shutil.rmtree(baseDir)
+            return True
+        return False
+    except Exception as e:
+        print(f"Error deleting all data: {e}")
+        return False

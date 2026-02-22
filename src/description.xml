@@ -5,7 +5,7 @@
     
     <identifier value="org.libreoffice.libreassist"/>
     
-    <version value="1.0.0"/>
+    <version value="1.0.1"/>
 
     <icon>
         <default xlink:href="icons/logo-48.png"/>

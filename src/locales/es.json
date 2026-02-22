@@ -34,5 +34,11 @@
   "clear_history_error": "Error al borrar el historial: {error}",
   "error_title": "Error",
   "settings_custom_instructions": "Instrucciones personalizadas",
-  "settings_custom_instructions_hint": "Estas instrucciones se incluirán en cada solicitud (p. ej., 'Usa siempre un tono profesional')"
+  "settings_custom_instructions_hint": "Estas instrucciones se incluirán en cada solicitud (p. ej., 'Usa siempre un tono profesional')",
+  "settings_delete_all_data": "Eliminar todos los datos",
+  "delete_all_data_title": "Eliminar todos los datos",
+  "delete_all_data_confirm": "¿Eliminar todos los datos de LibreAssist?\n\nEsto eliminará todo el historial, las copias de seguridad y la configuración. Esta acción no se puede deshacer.",
+  "delete_all_data_success_title": "Datos eliminados",
+  "delete_all_data_success": "Todos los datos de LibreAssist se han eliminado correctamente.",
+  "delete_all_data_error": "Error al eliminar los datos: {error}"
 }

@@ -34,5 +34,11 @@
   "clear_history_error": "Failed to clear history: {error}",
   "error_title": "Error",
   "settings_custom_instructions": "Custom Instructions",
-  "settings_custom_instructions_hint": "These instructions will be included in every request (e.g., 'Always use German umlauts' or 'Keep tone professional')"
+  "settings_custom_instructions_hint": "These instructions will be included in every request (e.g., 'Always use German umlauts' or 'Keep tone professional')",
+  "settings_delete_all_data": "Delete All Data",
+  "delete_all_data_title": "Delete All Data",
+  "delete_all_data_confirm": "Do you want to delete all LibreAssist data?\n\nThis will remove all chat history, backups and settings. This action cannot be undone.",
+  "delete_all_data_success_title": "Data Deleted",
+  "delete_all_data_success": "All LibreAssist data has been deleted successfully.",
+  "delete_all_data_error": "Failed to delete data: {error}"
 }

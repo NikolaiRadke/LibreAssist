@@ -26,6 +26,8 @@ def showMessageBox(title, message, messageType="infobox", buttons=1):
     smgr = ctx.ServiceManager
     desktop = smgr.createInstance("com.sun.star.frame.Desktop")
     frame = desktop.getCurrentFrame()
+    if not frame:
+        return 0
     window = frame.getContainerWindow()
     
     toolkit = window.getToolkit()
@@ -208,6 +210,35 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                     messageType="errorbox",
                     buttons=1
                 )
+
+        # ---- Delete All Data ----
+        elif event.ActionCommand == "DeleteAllData_OnClick":
+            try:
+                result = showMessageBox(
+                    t("delete_all_data_title"),
+                    t("delete_all_data_confirm"),
+                    messageType="querybox",
+                    buttons=4
+                )
+                if result == 2:  # Yes clicked
+                    if lib_settings.deleteAllData():
+                        historyControl = self.factory.panelWin.getControl("ChatHistory")
+                        historyControl.setText("Chat History\n")
+                        showMessageBox(
+                            t("delete_all_data_success_title"),
+                            t("delete_all_data_success"),
+                            messageType="infobox",
+                            buttons=1
+                        )
+                    else:
+                        showMessageBox(
+                            t("error_title"),
+                            t("delete_all_data_error", error="Unknown error"),
+                            messageType="errorbox",
+                            buttons=1
+                        )
+            except Exception as e:
+                print("Error in DeleteAllData:", e)
 
 
 class ProviderChangeListener(unohelper.Base, XItemListener):

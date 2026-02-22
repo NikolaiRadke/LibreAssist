@@ -18,8 +18,8 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
     # View control groups
     _CHAT_CONTROLS = ["ChatHistory", "InputField", "SendButton", "InfoLabel"]
     _SETTINGS_CONTROLS = ["ProviderLabel", "ProviderList", "TimeoutLabel", "TimeoutField",
-                          "ResetSessionButton", "ClearHistoryButton",
-                          "InstructionsLabel", "InstructionsField"]
+                          "InstructionsLabel", "InstructionsField",
+                          "ResetSessionButton", "ClearHistoryButton", "DeleteAllDataButton"]
     _ABOUT_CONTROLS = ["AboutLogo", "AboutText"]
 
     def __init__(self, ctx):
@@ -317,6 +317,17 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         clearHistoryModel.Label = getLocalizedString("settings_clear_history", "Clear History")
         dialogModel.insertByName("ClearHistoryButton", clearHistoryModel)
 
+        # Delete all data button
+        deleteAllDataModel = dialogModel.createInstance("com.sun.star.awt.UnoControlButtonModel")
+        deleteAllDataModel.Name = "DeleteAllDataButton"
+        deleteAllDataModel.TabIndex = 8
+        deleteAllDataModel.PositionX = 10
+        deleteAllDataModel.PositionY = 280
+        deleteAllDataModel.Width = 130
+        deleteAllDataModel.Height = 23
+        deleteAllDataModel.Label = getLocalizedString("settings_delete_all_data", "Delete All Data")
+        dialogModel.insertByName("DeleteAllDataButton", deleteAllDataModel)
+
     def _createAboutView(self, dialogModel):
         """Create about view components."""
     
@@ -353,7 +364,8 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         
         # Button events
         for buttonName in ["SendButton", "UndoButton", "RedoButton", "SettingsButton", 
-                          "AboutButton", "BackButton", "ResetSessionButton", "ClearHistoryButton"]:
+                          "AboutButton", "BackButton", "ResetSessionButton", 
+                          "ClearHistoryButton", "DeleteAllDataButton"]:
             panelWin.getControl(buttonName).addActionListener(eventHandler)
             panelWin.getControl(buttonName).setActionCommand(f"{buttonName.replace('Button', '')}_OnClick")
 

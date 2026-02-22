@@ -34,5 +34,11 @@
   "clear_history_error": "Fehler beim Löschen des Verlaufs: {error}",
   "error_title": "Fehler",
   "settings_custom_instructions": "Eigene Anweisungen",
-  "settings_custom_instructions_hint": "Diese Anweisungen werden bei jeder Anfrage mitgesendet (z.B. 'Deutsche Umlaute verwenden' oder 'Professioneller Ton')"
+  "settings_custom_instructions_hint": "Diese Anweisungen werden bei jeder Anfrage mitgesendet (z.B. 'Deutsche Umlaute verwenden' oder 'Professioneller Ton')",
+  "settings_delete_all_data": "Alle Daten löschen",
+  "delete_all_data_title": "Alle Daten löschen",
+  "delete_all_data_confirm": "Möchten Sie alle LibreAssist-Daten löschen?\n\nDies entfernt alle Chat-Verläufe, Backups und Einstellungen. Diese Aktion kann nicht rückgängig gemacht werden.",
+  "delete_all_data_success_title": "Daten gelöscht",
+  "delete_all_data_success": "Alle LibreAssist-Daten wurden erfolgreich gelöscht.",
+  "delete_all_data_error": "Fehler beim Löschen der Daten: {error}"
 }

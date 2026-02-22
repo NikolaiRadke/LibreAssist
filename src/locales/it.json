@@ -34,5 +34,11 @@
   "clear_history_error": "Impossibile cancellare la cronologia: {error}",
   "error_title": "Errore",
   "settings_custom_instructions": "Istruzioni personalizzate",
-  "settings_custom_instructions_hint": "Queste istruzioni verranno incluse in ogni richiesta (es. 'Usa sempre un tono professionale')"
+  "settings_custom_instructions_hint": "Queste istruzioni verranno incluse in ogni richiesta (es. 'Usa sempre un tono professionale')",
+  "settings_delete_all_data": "Elimina tutti i dati",
+  "delete_all_data_title": "Elimina tutti i dati",
+  "delete_all_data_confirm": "Eliminare tutti i dati di LibreAssist?\n\nQuesto rimuoverà tutta la cronologia, i backup e le impostazioni. Questa azione non può essere annullata.",
+  "delete_all_data_success_title": "Dati eliminati",
+  "delete_all_data_success": "Tutti i dati di LibreAssist sono stati eliminati con successo.",
+  "delete_all_data_error": "Impossibile eliminare i dati: {error}"
 }
