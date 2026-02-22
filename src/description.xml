@@ -22,12 +22,15 @@
     </registration>
     
     <publisher>
-        <name xlink:href="https://github.com/yourname/libreassist">LibreAssist Developer</name>
+        <name xlink:href="https://github.com/NikolaiRadke/LibreAssist">Nikolai Radke</name>
     </publisher>
     
     <display-name>
         <name lang="en">LibreAssist</name>
         <name lang="de">LibreAssist</name>
+        <name lang="fr">LibreAssist</name>
+        <name lang="it">LibreAssist</name>
+        <name lang="es">LibreAssist</name>
     </display-name>
     
     <extension-description>

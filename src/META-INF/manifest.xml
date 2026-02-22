@@ -12,6 +12,12 @@
                          manifest:full-path="locales/en.json"/>
     <manifest:file-entry manifest:media-type="application/json"
                          manifest:full-path="locales/de.json"/>
+    <manifest:file-entry manifest:media-type="application/json"
+                         manifest:full-path="locales/fr.json"/>
+    <manifest:file-entry manifest:media-type="application/json"
+                         manifest:full-path="locales/it.json"/>
+    <manifest:file-entry manifest:media-type="application/json"
+                         manifest:full-path="locales/es.json"/>
     <manifest:file-entry manifest:media-type="image/png"
                          manifest:full-path="icons/logo-32.png"/>
     <manifest:file-entry manifest:media-type="image/png"

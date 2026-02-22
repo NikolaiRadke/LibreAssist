@@ -12,7 +12,7 @@ LibreAssist is a LibreOffice extension that brings AI-powered writing assistance
 - ✏️ **Direct Document Manipulation** - AI writes directly into your document, even design elements
 - ↩️ **Undo/Redo System** - Full backup and restore capabilities for AI changes
 - 💾 **Persistent Chat History** - Conversations are saved per document
-- 🌍 **Multilingual** - English and German localization included, more will followe
+- 🌍 **Multilingual** - en, de, fr, it and es localization included, more will follow
 - 🔄 **Provider Switching** - Easy switching between different AI providers
 - ⚙️ **Configurable Timeouts** - Adjust processing timeouts as needed
 
