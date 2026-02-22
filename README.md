@@ -5,6 +5,10 @@
 
 LibreAssist is a LibreOffice extension that brings AI-powered writing assistance directly into your documents. Unlike traditional copy-paste solutions, LibreAssist provides true **Agentic Writing** - AI tools that can directly manipulate your documents through command-line interfaces, even design.
 
+🆕 What's new?  
+* **22.02.2026** LibreAssist is available on [libreoffice.org](https://extensions.libreoffice.org/en/extensions/show/99521).  
+    -- More news? Check the [newsblog](https://github.com/NikolaiRadke/LibreAssist/blob/main/NEWS.md).
+
 ## Features
 
 - 🤖 **Multi-Provider Support** - Works with Claude Code CLI and Codex CLI
