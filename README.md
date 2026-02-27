@@ -23,6 +23,7 @@ LibreAssist is a LibreOffice extension that brings AI-powered writing assistance
 ## Screenshot
 
 ![LibreAssist Screenshot](https://www.nikolairadke.de/aiduino/libreassist_screenshot.png)
+![LibreAssist Screenshot](https://www.nikolairadke.de/aiduino/libreassist_screenshot2.png)
 
 ## Supported Providers
 
