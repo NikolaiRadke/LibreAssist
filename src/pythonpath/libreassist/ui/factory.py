@@ -100,7 +100,13 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
                 "com.sun.star.awt.Selection", textLength, textLength))
             model.ReadOnly = True
 
-            return 690
+            # Compute actual pixel height from bottommost control.
+            # dialog model Height is in dialog units, not pixels; returning dialog
+            # units as pixels causes the sidebar to allocate too little space and
+            # clip controls near the bottom (e.g. SendButton).
+            infoCtrl = panelWin.getControl("InfoLabel")
+            pos = infoCtrl.getPosSize()
+            return pos.Y + pos.Height + 10
 
         return 100
 
