@@ -40,5 +40,8 @@
   "delete_all_data_confirm": "Voulez-vous supprimer toutes les données LibreAssist ?\n\nCela supprimera tout l'historique, les sauvegardes et les paramètres. Cette action est irréversible.",
   "delete_all_data_success_title": "Données supprimées",
   "delete_all_data_success": "Toutes les données LibreAssist ont été supprimées avec succès.",
-  "delete_all_data_error": "Échec de la suppression : {error}"
+  "delete_all_data_error": "Échec de la suppression : {error}",
+  "cancel_button": "Annuler",
+  "send_button": "Envoyer",
+  "cancelled": "Annulé"
 }

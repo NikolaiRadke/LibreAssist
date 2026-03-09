@@ -138,7 +138,7 @@ class LLMCompletionCallback(unohelper.Base, XCallback):
             # Always re-enable the Send button
             try:
                 sendButton = self.panelWin.getControl("SendButton")
-                sendButton.getModel().Label = "Send"
+                sendButton.getModel().Label = t("send_button")
                 sendButton.setActionCommand("Send_OnClick")
                 sendButton.getModel().Enabled = True
             except Exception:
@@ -218,7 +218,8 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                 _scrollToEnd(historyControl, workingHistory)
 
                 # Disable buttons during processing
-                sendButton.getModel().Enabled = False
+                sendButton.getModel().Label = t("cancel_button")
+                sendButton.setActionCommand("Cancel_OnClick")
                 panelWin.getControl("UndoButton").getModel().Enabled = False
                 panelWin.getControl("RedoButton").getModel().Enabled = False
 

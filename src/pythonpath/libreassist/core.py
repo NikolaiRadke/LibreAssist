@@ -172,18 +172,22 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
             responseText = t('error_not_found')
         except RuntimeError as e:
             stderr      = str(e)
-            stderrLower = stderr.lower()
-            if "model not found" in stderrLower or "modelnotfounderror" in stderrLower:
-                responseText = t('error_model_not_found')
-            elif "rate limit" in stderrLower or "429" in stderr:
-                responseText = t('error_rate_limit')
-            elif "no capacity" in stderrLower or "capacity_exhausted" in stderrLower:
-                responseText = t('error_no_capacity')
-            elif "authentication" in stderrLower or "unauthorized" in stderrLower:
-                responseText = t('error_authentication')
+            if "code -9" in stderr:
+                responseText = t('cancelled')
             else:
-                lines    = stderr.split('\n')
-                filtered = '\n'.join(lines[:10] + ['... (truncated) ...'] + lines[-10:]) if len(lines) > 30 else stderr
+                stderrLower = stderr.lower()
+                if "model not found" in stderrLower or "modelnotfounderror" in stderrLower:
+                    responseText = t('error_model_not_found')
+                elif "rate limit" in stderrLower or "429" in stderr:
+                    responseText = t('error_rate_limit')
+                elif "no capacity" in stderrLower or "capacity_exhausted" in stderrLower:
+                    responseText = t('error_no_capacity')
+                elif "authentication" in stderrLower or "unauthorized" in stderrLower:
+                    responseText = t('error_authentication')
+                else:
+                    lines    = stderr.split('\n')
+                    filtered = '\n'.join(lines[:10] + ['... (truncated) ...'] + lines[-10:]) if len(lines) > 30 else stderr
+                    responseText = t('error_provider', error=filtered)
                 responseText = t('error_provider', error=filtered)
         except Exception as e:
             import traceback

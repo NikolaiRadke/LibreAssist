@@ -231,7 +231,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         sendButtonModel.PositionY = 355
         sendButtonModel.Width = 130
         sendButtonModel.Height = 23
-        sendButtonModel.Label = "Send"
+        sendButtonModel.Label = getLocalizedString("send_button", "Send")
         dialogModel.insertByName("SendButton", sendButtonModel)
 
         # Info label

@@ -40,5 +40,8 @@
   "delete_all_data_confirm": "¿Eliminar todos los datos de LibreAssist?\n\nEsto eliminará todo el historial, las copias de seguridad y la configuración. Esta acción no se puede deshacer.",
   "delete_all_data_success_title": "Datos eliminados",
   "delete_all_data_success": "Todos los datos de LibreAssist se han eliminado correctamente.",
-  "delete_all_data_error": "Error al eliminar los datos: {error}"
+  "delete_all_data_error": "Error al eliminar los datos: {error}",
+  "cancel_button": "Cancelar",
+  "send_button": "Enviar",
+  "cancelled": "Cancelado"
 }
