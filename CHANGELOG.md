@@ -1,18 +1,9 @@
-# Release V1.0
+# Release V1.0.2
 
-### Added
-- Initial release
-- Claude Code CLI support
-- Codex CLI support
-- Session management
-- Undo/Redo system
-- en, de, fr. it and it localization
-- Interactive dialogs with confirmations
+# Release V1.0.2
+### Bugfixes
+- Fixed Send button being clipped on high-DPI or large-font setups (Thanks to blshkv)
+- Fixed Send button occasionally not rendering due to duplicate TabIndex conflict (Thanls to blshkv)
 
-### Tested but Incompatible
-- Gemini CLI - cannot edit .odt files
-- Groq Code - cannot edit .odt files
-- Mistral Vibe - cannot edit .odt files
-
-# Added with release V1.0.1
-- Added a button to delete all user data. For de-installation, LibreOffice doesn't support uninstaller scripts.
+### Other
+- Requests no longer block the LibreOffice UI

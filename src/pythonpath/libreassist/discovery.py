@@ -143,7 +143,7 @@ def discoverProvider(providerName):
         "claude_code": "claude",
         "codex_cli":   "codex",
         # "gemini_cli":  "gemini",  # Cannot edit .odt files
-        # "mistral_vibe": "vibe",  # Cannot edit .odt files
+        "mistral_vibe": "vibe",  # Cannot edit .odt files
         # "opencode":    "opencode",  # Cannot edit .odt files
         # "groq_code":   "groq",  # Cannot edit .odt files
     }

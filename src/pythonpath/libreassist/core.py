@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
 # libreassist/core.py - Core logic and provider routing
 
+import os
+import threading
+import importlib
 import uno
 
-# Import from libreassist modules
-from .i18n import t, getVersion
-from .document import getCurrentDocument, getDocumentPath
+from .i18n import t
+from .document import getCurrentDocument
 from . import discovery, provider_base, settings, backup
 from .providers import claude_code, codex_cli
 
 
+# ---------------------------------------------------------------------------
+# Provider registry
+# ---------------------------------------------------------------------------
+
 # Registered CLI providers
 PROVIDERS = {
     "claude_code": "libreassist.providers.claude_code",
-    "codex_cli":  "libreassist.providers.codex_cli",
+    "codex_cli":   "libreassist.providers.codex_cli",
 }
 
 # Aliases for short prefix input
@@ -28,246 +34,210 @@ DISPLAY_NAMES = {v: k.title() for k, v in PROVIDER_ALIASES.items()}
 DEFAULT_PROVIDER = "claude_code"
 
 
+# ---------------------------------------------------------------------------
+# Simple command handler (Undo / Redo only)
+# ---------------------------------------------------------------------------
+
 def handleUserInput(userInput, currentHistory=""):
     """
-    Main entry point - routes all user commands.
+    Handle special commands triggered from the chat input.
+    Only __undo__ and __redo__ are processed here; all LLM requests
+    go through callLLMAsync directly.
 
-    Args:
-        userInput:      String from the input field or special commands
-        currentHistory: Current chat history text (for saving)
-
-    Returns:
-        String to display in chat history
+    Returns: Response string for display
     """
-    # Debug command
-    if userInput == "debug":
-        settingsData = settings.loadSettings()
-        docDir = settings.getDocSettingsDir()
-        return f"docDir: {docDir}\nsettings: {settingsData}"
-
-    # Undo command (triggered by Undo button)
     if userInput == "__undo__":
         return backup.restoreBackup()
-
-    # Redo command (triggered by Redo button)
     if userInput == "__redo__":
         return backup.restoreChanged()
-
-    # Detect provider prefix (e.g. "claude ...", "codex ...")
-    providerKey = None
-    prompt = None
-
-    for prefix in list(PROVIDERS.keys()) + list(PROVIDER_ALIASES.keys()):
-        if userInput.lower().startswith(prefix + " "):
-            providerKey = PROVIDER_ALIASES.get(prefix, prefix)
-            prompt = userInput[len(prefix) + 1:]
-            break
-
-    if providerKey is not None:
-        # Prefix-based provider selection
-        moduleName = PROVIDERS[providerKey]
-    else:
-        # No prefix: use default provider from global settings
-        globalSettings = settings.loadGlobalSettings()
-        activeProvider = globalSettings.get("default_provider", DEFAULT_PROVIDER)
-        if activeProvider in PROVIDERS:
-            moduleName = PROVIDERS[activeProvider]
-            prompt = userInput
-        else:
-            return f"Unknown provider '{activeProvider}'. Check settings."
-
-    return _callProvider(moduleName, prompt, currentHistory)
+    return ""
 
 
-def _callProvider(moduleName, userPrompt, currentHistory=""):
+# ---------------------------------------------------------------------------
+# Async LLM execution
+# ---------------------------------------------------------------------------
+
+def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback, doc=None):
     """
-    Load the provider module and call the LLM.
+    Run the CLI provider in a background thread.
+    The completionCallback (XCallback) is invoked on the Main-UNO-Thread
+    when the subprocess finishes.
+
+    All UNO API calls happen before the thread starts (Main-Thread only).
+    Everything inside _run() is pure Python / file I/O.
 
     Args:
-        moduleName:     Python module name string (e.g. 'libreassist.providers.claude_code')
-        userPrompt:     The user's instruction
-        currentHistory: Current chat history including user input
-
-    Returns:
-        Response string for display
+        providerModule:     Imported provider module
+        userPrompt:         The user's instruction
+        currentHistory:     Chat history up to and including the user message
+        completionCallback: XCallback instance
+        doc:                Document object captured at click time; if None,
+                            falls back to getCurrentDocument()
     """
-    import importlib
-
-    try:
-        providerModule = importlib.import_module(moduleName)
-    except ImportError as e:
-        return f"Could not load provider module '{moduleName}': {e}"
-
-    return callLLM(providerModule, userPrompt, currentHistory)
-
-
-def callLLM(providerModule, userPrompt, currentHistory=""):
-    """
-    Execute the LLM call via the given provider module.
-    Handles document backup, status indicator, file modification detection,
-    history persistence, and document reload.
-
-    Args:
-        providerModule: Imported provider module with buildArgs() + extractResponse()
-        userPrompt:     The user's instruction
-        currentHistory: Current chat history including user input
-
-    Returns:
-        Response string for display
-    """
-    try:
-        import time
-        import shutil
-        import os
-
+    if doc is None:
         doc = getCurrentDocument()
-        if not doc:
-            return "No document open"
+    if not doc:
+        completionCallback.payload = {"error": "No document open", "fileWasModified": False}
+        _fireCallback(completionCallback)
+        return
 
-        url = doc.getURL()
-        directory, filename, fullPath = getDocumentPath()
+    url = doc.getURL()
+    if not url:
+        completionCallback.payload = {"error": t('error_not_saved'), "fileWasModified": False}
+        _fireCallback(completionCallback)
+        return
 
-        if not fullPath:
-            return t('error_not_saved')
+    fullPath = uno.fileUrlToSystemPath(url)
+    directory = os.path.dirname(fullPath)
+    filename  = os.path.basename(fullPath)
 
-        # Save document before provider works on it
-        doc.store()
+    # --- All UNO calls must happen here, before the thread starts ---
 
-        if not backup.createBackup():
-            return "Could not create backup!"
+    doc.store()
 
-        modTimeBefore = os.stat(fullPath).st_mtime
+    docDir = settings.getDocSettingsDirForPath(fullPath)
 
-        frame = doc.getCurrentController().getFrame()
-        frameName = frame.getName() if frame.getName() else "_default"
+    if not backup.createBackup(fullPath, docDir):
+        completionCallback.payload = {"error": "Could not create backup!", "fileWasModified": False}
+        _fireCallback(completionCallback)
+        return
 
-        statusIndicator = frame.createStatusIndicator()
-        statusIndicator.start(t('wait_title'), 0)
+    modTimeBefore = os.stat(fullPath).st_mtime
 
-        # Load session ID from settings
-        settingsData = settings.loadSettings()
-        sessionId = settingsData.get("session_ids", {}).get(providerModule.NAME)
+    frame = doc.getCurrentController().getFrame()
+    frameName = frame.getName()
+    if not frameName:
+        frameName = f"la_{id(frame)}"
+        frame.setName(frameName)
 
-        # Load custom instructions
-        globalSettings = settings.loadGlobalSettings()
-        customInstructions = globalSettings.get("custom_instructions", "").strip()
+    settingsData = settings.loadSettingsForDir(docDir, fullPath)
+    sessionId = settingsData.get("session_ids", {}).get(providerModule.NAME)
+    timeout   = settingsData.get("timeout", 600)
 
-        # Build full prompt with document context
-        basePrompt = (
-            f"You have access to {filename} in the current directory. "
-            f"User request: {userPrompt}. "
-            "IMPORTANT: Write your response directly into the document by editing the file, "
-            "UNLESS the user is asking a pure information question (like 'what day is it?' or 'what's in the document?'). "
-            "For content creation, editing, or writing tasks, always modify the document directly. "
-            "Response format: Plain text only, no Markdown."
-        )
+    globalSettings     = settings.loadGlobalSettings()
+    customInstructions = globalSettings.get("custom_instructions", "").strip()
 
-        if customInstructions:
-            fullPrompt = f"{basePrompt}\n\nMANDATORY: Apply these rules to your response:\n{customInstructions}"
-        else:
-            fullPrompt = basePrompt
+    basePrompt = (
+        f"You have access to {filename} in the current directory. "
+        f"This is a {os.path.splitext(filename)[1]} file. "
+        f"User request: {userPrompt}. "
+        "IMPORTANT: Write your response directly into the document by editing the file, "
+        "UNLESS the user is asking a pure information question (like 'what day is it?' or 'what's in the document?'). "
+        "For content creation, editing, or writing tasks, always modify the document directly. "
+        "Response format: Plain text only, no Markdown."
+    )
+
+    if customInstructions:
+        fullPrompt = f"{basePrompt}\n\nMANDATORY: Apply these rules to your response:\n{customInstructions}"
+    else:
+        fullPrompt = basePrompt
+
+    # AsyncCallback must be created on the Main-Thread
+    ctx     = uno.getComponentContext()
+    asyncCb = ctx.ServiceManager.createInstance("com.sun.star.awt.AsyncCallback")
+
+    # --- Background thread ---
+
+    def _run():
+        import shutil
+
+        responseText   = None
+        newSessionId   = None
+        fileWasModified = False
 
         try:
+            def _onProcess(proc):
+                completionCallback.process = proc
+
             result = provider_base.executeProvider(
                 providerModule,
                 fullPrompt,
                 directory,
                 sessionId=sessionId,
-                timeout=settingsData.get("timeout", 600)
+                timeout=timeout,
+                onProcess=_onProcess
             )
+            collectedText  = result.get("response", "")
+            newSessionId   = result.get("sessionId")
+
+            modTimeAfter    = os.stat(fullPath).st_mtime
+            fileWasModified = (modTimeAfter != modTimeBefore)
+
+            displayName  = DISPLAY_NAMES.get(providerModule.NAME, "Assistant")
+            responseText = f"{displayName}:\n{collectedText.strip()}"
+
         except TimeoutError:
-            statusIndicator.end()
-            return t('error_timeout')
+            responseText = t('error_timeout')
         except FileNotFoundError:
-            statusIndicator.end()
-            return t('error_not_found')
+            responseText = t('error_not_found')
         except RuntimeError as e:
-            statusIndicator.end()
-            stderr = str(e)
+            stderr      = str(e)
             stderrLower = stderr.lower()
-        
-            # Parse common errors and return user-friendly messages
             if "model not found" in stderrLower or "modelnotfounderror" in stderrLower:
-                return t('error_model_not_found')
+                responseText = t('error_model_not_found')
             elif "rate limit" in stderrLower or "429" in stderr:
-                return t('error_rate_limit')
+                responseText = t('error_rate_limit')
             elif "no capacity" in stderrLower or "capacity_exhausted" in stderrLower:
-                return t('error_no_capacity')
+                responseText = t('error_no_capacity')
             elif "authentication" in stderrLower or "unauthorized" in stderrLower:
-                return t('error_authentication')
+                responseText = t('error_authentication')
             else:
-                # Filter stderr - show first/last 10 lines
-                lines = stderr.split('\n')
-                if len(lines) > 30:
-                    filtered = '\n'.join(lines[:10] + ['... (truncated) ...'] + lines[-10:])
-                else:
-                    filtered = stderr
-                return t('error_provider', error=filtered)
+                lines    = stderr.split('\n')
+                filtered = '\n'.join(lines[:10] + ['... (truncated) ...'] + lines[-10:]) if len(lines) > 30 else stderr
+                responseText = t('error_provider', error=filtered)
         except Exception as e:
-            statusIndicator.end()
             import traceback
             traceback.print_exc()
-            return t('error_general', error=str(e))
+            responseText = t('error_general', error=str(e))
 
-        statusIndicator.end()
+        # Save session ID
+        settingsData2 = settings.loadSettingsForDir(docDir, fullPath)
+        session_ids   = settingsData2.get("session_ids", {})
+        session_ids[providerModule.NAME] = newSessionId
+        settingsData2["session_ids"]     = session_ids
+        settings.saveSettingsForDir(docDir, settingsData2, fullPath)
 
-        # Save session ID (only providers that support sessions will return one)
-        settingsData = settings.loadSettings()
-        session_ids = settingsData.get("session_ids", {})
-        session_ids[providerModule.NAME] = result.get("sessionId")
-        settingsData["session_ids"] = session_ids
-        settings.saveSettings(settingsData)
-
-        collectedText = result.get("response", "")
-
-        modTimeAfter = os.stat(fullPath).st_mtime
-        fileWasModified = (modTimeAfter != modTimeBefore)
-
-        # Save complete history before potential reload
-        updatedHistory = currentHistory + "Assistant:\n" + collectedText.strip() + "\n\n"
-        settings.saveHistory(updatedHistory)
-
-        if fileWasModified:
-            docDir = settings.getDocSettingsDir()
+        # Save changed-state file and update undo/redo flags
+        if fileWasModified and docDir:
             changedPath = os.path.join(docDir, "changed" + os.path.splitext(filename)[1])
             shutil.copy2(fullPath, changedPath)
-
             backup._undo_state = "changed"
+            settingsData3 = settings.loadSettingsForDir(docDir, fullPath)
+            settingsData3["undo_available"] = True
+            settingsData3["redo_available"] = False
+            settings.saveSettingsForDir(docDir, settingsData3, fullPath)
 
-            settingsData = settings.loadSettings()
-            settingsData["undo_available"] = True
-            settingsData["redo_available"] = False
-            settings.saveSettings(settingsData)
+        # Save history
+        updatedHistory = currentHistory + responseText + "\n\n"
+        settings.saveHistoryForDir(docDir, updatedHistory)
 
-            doc.close(False)
-            time.sleep(0.3)
+        completionCallback.payload = {
+            "response":        responseText,
+            "fileWasModified": fileWasModified,
+            "url":             url,
+            "frameName":       frameName,
+            "doc":             doc,
+            "docDir":          docDir,
+        }
+        asyncCb.addCallback(completionCallback, None)
 
-            ctx = uno.getComponentContext()
-            desktop = ctx.ServiceManager.createInstance("com.sun.star.frame.Desktop")
-            desktop.loadComponentFromURL(url, frameName, 0, ())
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
 
-        displayName = DISPLAY_NAMES.get(providerModule.NAME, "Assistant")
-        return f"{displayName}:\n{collectedText.strip()}"
 
-    except Exception as e:
-        try:
-            statusIndicator.end()
-        except:
-            pass
-        try:
-            ctx = uno.getComponentContext()
-            desktop = ctx.ServiceManager.createInstance("com.sun.star.frame.Desktop")
-            desktop.loadComponentFromURL(url, frameName, 0, ())
-        except:
-            pass
-        import traceback
-        traceback.print_exc()
-        return t('error_general', error=str(e))
+def _fireCallback(completionCallback):
+    """Helper: fire callback immediately on Main-Thread (error path)."""
+    ctx = uno.getComponentContext()
+    ctx.ServiceManager.createInstance("com.sun.star.awt.AsyncCallback").addCallback(completionCallback, None)
 
+
+# ---------------------------------------------------------------------------
+# Provider discovery
+# ---------------------------------------------------------------------------
 
 def discoverProviders():
     """
-    Discover all installed CLI providers and cache results in GLOBAL settings.
+    Discover all installed CLI providers and cache results in global settings.
     Called once on startup.
     """
     allProviders = [

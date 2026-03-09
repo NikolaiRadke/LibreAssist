@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 # libreassist/backup.py - Backup and restore functions
 
+import os
+import shutil
+import time
 import uno
 from .document import getCurrentDocument, getDocumentPath
 from .settings import getDocSettingsDir, loadSettings, saveSettings
@@ -8,28 +11,24 @@ from .settings import getDocSettingsDir, loadSettings, saveSettings
 _undo_state = "original"  # Track state: "original" or "changed"
 
 
-def createBackup():
+def createBackup(fullPath, docDir):
     """
-    Create backup file before provider changes the document.
+    Create a backup of the document before the provider modifies it.
+    Safe to call from the Main-UNO-Thread – does not use getCurrentDocument().
+
+    Args:
+        fullPath: Absolute path to the document file
+        docDir:   Settings directory for this document
+
     Returns: True if successful, False otherwise
     """
     try:
-        import shutil
-        import os
-
-        directory, filename, fullPath = getDocumentPath()
-        if not fullPath:
+        if not fullPath or not docDir:
             return False
-
-        docDir = getDocSettingsDir()
-        if not docDir:
-            return False
-
+        filename = os.path.basename(fullPath)
         backupPath = os.path.join(docDir, "backup" + os.path.splitext(filename)[1])
         shutil.copy2(fullPath, backupPath)
-
         return True
-
     except Exception as e:
         print(f"Error creating backup: {e}")
         return False
@@ -37,16 +36,13 @@ def createBackup():
 
 def restoreBackup():
     """
-    Restore document from backup and reload.
+    Restore document from backup (Undo).
+    Called from the Undo button – getCurrentDocument() is correct here.
     Returns: Status message string
     """
     global _undo_state
 
     try:
-        import shutil
-        import time
-        import os
-
         doc = getCurrentDocument()
         if not doc:
             return "No document open"
@@ -62,13 +58,16 @@ def restoreBackup():
             return "No backup available"
 
         frame = doc.getCurrentController().getFrame()
-        frameName = frame.getName() if frame.getName() else "_default"
+        frameName = frame.getName()
+        if not frameName:
+            frameName = f"la_{id(frame)}"
+            frame.setName(frameName)
         url = doc.getURL()
 
-        settings = loadSettings()
-        settings["undo_available"] = False
-        settings["redo_available"] = True
-        saveSettings(settings)
+        data = loadSettings()
+        data["undo_available"] = False
+        data["redo_available"] = True
+        saveSettings(data)
 
         doc.close(False)
         time.sleep(0.3)
@@ -91,15 +90,12 @@ def restoreBackup():
 def restoreChanged():
     """
     Restore document from changed state (Redo).
+    Called from the Redo button – getCurrentDocument() is correct here.
     Returns: Status message string
     """
     global _undo_state
 
     try:
-        import shutil
-        import time
-        import os
-
         doc = getCurrentDocument()
         if not doc:
             return "No document open"
@@ -115,13 +111,16 @@ def restoreChanged():
             return "No changed state available"
 
         frame = doc.getCurrentController().getFrame()
-        frameName = frame.getName() if frame.getName() else "_default"
+        frameName = frame.getName()
+        if not frameName:
+            frameName = f"la_{id(frame)}"
+            frame.setName(frameName)
         url = doc.getURL()
 
-        settings = loadSettings()
-        settings["undo_available"] = True
-        settings["redo_available"] = False
-        saveSettings(settings)
+        data = loadSettings()
+        data["undo_available"] = True
+        data["redo_available"] = False
+        saveSettings(data)
 
         doc.close(False)
         time.sleep(0.3)

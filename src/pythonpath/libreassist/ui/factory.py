@@ -45,7 +45,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
             panelWin = xUIElement.Window
             panelWin.Visible = True
 
-            height = self.createPanelContent(panelWin, url)
+            height = self.createPanelContent(panelWin, url, xFrame)
             xUIElement.height = height
 
             return xUIElement
@@ -55,8 +55,9 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
             import traceback
             traceback.print_exc()
 
-    def createPanelContent(self, panelWin, url):
+    def createPanelContent(self, panelWin, url, frame=None):
         """Create the complete panel UI."""
+        print("createPanelContent called")
         if url == "private:resource/toolpanel/LibreAssistFactory/LibreAssistPanel":
             ctx = uno.getComponentContext()
             self.panelWin = panelWin
@@ -70,11 +71,29 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
             # Initialize
             lib_settings.cleanupOrphanedDirs()
             discovered = core.discoverProviders()
-            print(f"DEBUG: discovered = {discovered}")
             
             globalSettings = lib_settings.loadGlobalSettings()
-            docSettings = lib_settings.loadSettings()
-            loadedHistory = lib_settings.loadHistory()
+            docSettings = {"undo_available": False, "redo_available": False}
+            loadedHistory = "Chat History\n"
+            if frame:
+                try:
+                    docUrl = frame.getController().getModel().getURL()
+                    if docUrl:
+                        docPath     = uno.fileUrlToSystemPath(docUrl)
+                        docDir      = lib_settings.getDocSettingsDirForPath(docPath)
+                        docSettings = lib_settings.loadSettingsForDir(docDir, docPath)
+                        loadedHistory = lib_settings.loadHistoryForDir(docDir)
+                    else:
+                        # New unsaved document - no undo/redo possible
+                        docSettings   = {"undo_available": False, "redo_available": False}
+                        loadedHistory = "Chat History\n"
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    docSettings = lib_settings.loadSettings()
+            else:
+                docSettings   = lib_settings.loadSettings()
+                loadedHistory = lib_settings.loadHistory()
 
             # Create UI components
             self._createToolbar(dialogModel, docSettings)
@@ -100,7 +119,13 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
                 "com.sun.star.awt.Selection", textLength, textLength))
             model.ReadOnly = True
 
-            return 690
+            # Compute actual pixel height from bottommost control.
+            # dialog model Height is in dialog units, not pixels; returning dialog
+            # units as pixels causes the sidebar to allocate too little space and
+            # clip controls near the bottom (e.g. SendButton).
+            infoCtrl = panelWin.getControl("InfoLabel")
+            pos = infoCtrl.getPosSize()
+            return pos.Y + pos.Height + 10
 
         return 100
 
@@ -201,7 +226,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         # Send button
         sendButtonModel = dialogModel.createInstance("com.sun.star.awt.UnoControlButtonModel")
         sendButtonModel.Name = "SendButton"
-        sendButtonModel.TabIndex = 5
+        sendButtonModel.TabIndex = 6
         sendButtonModel.PositionX = 10
         sendButtonModel.PositionY = 355
         sendButtonModel.Width = 130
@@ -298,7 +323,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         # Reset session button
         resetSessionModel = dialogModel.createInstance("com.sun.star.awt.UnoControlButtonModel")
         resetSessionModel.Name = "ResetSessionButton"
-        resetSessionModel.TabIndex = 6
+        resetSessionModel.TabIndex = 7
         resetSessionModel.PositionX = 10
         resetSessionModel.PositionY = 220
         resetSessionModel.Width = 130
@@ -309,7 +334,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         # Clear history button
         clearHistoryModel = dialogModel.createInstance("com.sun.star.awt.UnoControlButtonModel")
         clearHistoryModel.Name = "ClearHistoryButton"
-        clearHistoryModel.TabIndex = 7
+        clearHistoryModel.TabIndex = 8
         clearHistoryModel.PositionX = 10
         clearHistoryModel.PositionY = 250
         clearHistoryModel.Width = 130
@@ -320,7 +345,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         # Delete all data button
         deleteAllDataModel = dialogModel.createInstance("com.sun.star.awt.UnoControlButtonModel")
         deleteAllDataModel.Name = "DeleteAllDataButton"
-        deleteAllDataModel.TabIndex = 8
+        deleteAllDataModel.TabIndex = 9
         deleteAllDataModel.PositionX = 10
         deleteAllDataModel.PositionY = 280
         deleteAllDataModel.Width = 130

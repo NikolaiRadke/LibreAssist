@@ -1,52 +1,54 @@
 # -*- coding: utf-8 -*-
 # libreassist/ui/events.py - Event handlers
 
+import importlib
 import uno
 import unohelper
-from com.sun.star.awt import XActionListener, XItemListener, XTextListener
+from com.sun.star.awt import XActionListener, XItemListener, XTextListener, XCallback
 from com.sun.star.document import XDocumentEventListener
 from libreassist.i18n import t
-from libreassist import core, settings as lib_settings
+from libreassist import core, settings as lib_settings, document as lib_document
 
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def showMessageBox(title, message, messageType="infobox", buttons=1):
     """
-    Show a message box dialog.
-    
+    Show a modal message box.
+
     Args:
-        title: Dialog title
-        message: Dialog message
-        messageType: 'infobox', 'warningbox', 'errorbox', 'querybox', 'messbox'
-        buttons: 1=OK, 2=OK+Cancel, 3=Yes+No+Cancel, 4=Yes+No
-        
+        title:       Dialog title
+        message:     Dialog message
+        messageType: 'infobox', 'warningbox', 'querybox'
+        buttons:     1=OK, 4=Yes+No
+
     Returns:
-        Button pressed (1=OK/Yes, 2=Cancel/No, 0=Cancel)
+        Button pressed (2=Yes/OK, 3=No, 0=cancelled)
     """
-    ctx = uno.getComponentContext()
-    smgr = ctx.ServiceManager
-    desktop = smgr.createInstance("com.sun.star.frame.Desktop")
-    frame = desktop.getCurrentFrame()
-    if not frame:
-        return 0
-    window = frame.getContainerWindow()
-    
-    toolkit = window.getToolkit()
-    
     from com.sun.star.awt.MessageBoxButtons import BUTTONS_OK, BUTTONS_YES_NO
     from com.sun.star.awt.MessageBoxType import INFOBOX, WARNINGBOX, QUERYBOX
-    
-    # Map string to constants
+
     typeMap = {
-        "infobox": INFOBOX,
+        "infobox":   INFOBOX,
         "warningbox": WARNINGBOX,
-        "querybox": QUERYBOX
+        "querybox":  QUERYBOX,
     }
-    
     buttonsMap = {
         1: BUTTONS_OK,
-        4: BUTTONS_YES_NO
+        4: BUTTONS_YES_NO,
     }
-    
+
+    ctx     = uno.getComponentContext()
+    smgr    = ctx.ServiceManager
+    desktop = smgr.createInstance("com.sun.star.frame.Desktop")
+    frame   = desktop.getCurrentFrame()
+    if not frame:
+        return 0
+    window  = frame.getContainerWindow()
+    toolkit = window.getToolkit()
+
     msgBox = toolkit.createMessageBox(
         window,
         typeMap.get(messageType, INFOBOX),
@@ -54,65 +56,197 @@ def showMessageBox(title, message, messageType="infobox", buttons=1):
         title,
         message
     )
-    
     return msgBox.execute()
 
 
+def _scrollToEnd(historyControl, text):
+    """Scroll the chat history control to the end."""
+    model = historyControl.getModel()
+    wasReadOnly = model.ReadOnly
+    model.ReadOnly = False
+    historyControl.setSelection(
+        uno.createUnoStruct("com.sun.star.awt.Selection", len(text), len(text)))
+    model.ReadOnly = wasReadOnly
+
+
+# ---------------------------------------------------------------------------
+# Async completion callback
+# ---------------------------------------------------------------------------
+
+class LLMCompletionCallback(unohelper.Base, XCallback):
+    """
+    Invoked on the Main-UNO-Thread when the async LLM subprocess finishes.
+    panelWin is captured at creation time so it always refers to the correct
+    sidebar panel, regardless of which window the user may have switched to.
+    """
+
+    def __init__(self, factory, panelWin, historyBeforeResponse):
+        self.factory              = factory
+        self.panelWin             = panelWin             # Captured at Send click time
+        self.historyBeforeResponse = historyBeforeResponse
+        self.payload              = None  # Set by _run() before asyncCb.addCallback()
+        self.process              = None  # Subprocess handle, set via onProcess callback
+
+    def notify(self, data):
+        """Runs on the Main-UNO-Thread – safe to call UNO APIs."""
+        try:
+            import time
+
+            payload         = self.payload or {}
+            responseText    = payload.get("response") or payload.get("error") or t('error_general', error="No response")
+            fileWasModified = payload.get("fileWasModified", False)
+            docDir          = payload.get("docDir")
+
+            historyControl = self.panelWin.getControl("ChatHistory")
+
+            # Restore Undo/Redo button states from the correct document's settings
+            docSettings = lib_settings.loadSettingsForDir(docDir) if docDir else lib_settings.loadSettings()
+            self.panelWin.getControl("UndoButton").getModel().Enabled = docSettings.get("undo_available", False)
+            self.panelWin.getControl("RedoButton").getModel().Enabled = docSettings.get("redo_available", False)
+
+            if fileWasModified:
+                # Document was changed: close and reload in the correct frame.
+                # The sidebar panel will be recreated with the updated history.
+                url       = payload.get("url")
+                frameName = payload.get("frameName", "_default")
+                try:
+                    ctx     = uno.getComponentContext()
+                    desktop = ctx.ServiceManager.createInstance("com.sun.star.frame.Desktop")
+                    docToClose = payload.get("doc")
+                    if docToClose:
+                        docToClose.close(False)
+                    time.sleep(0.3)
+                    desktop.loadComponentFromURL(url, frameName, 0, ())
+                except Exception as e:
+                    print(f"Error reloading document: {e}")
+            else:
+                # No file change: update chat history display manually.
+                newHistory = self.historyBeforeResponse + responseText + "\n\n"
+                historyControl.setText(newHistory)
+                _scrollToEnd(historyControl, newHistory)
+                # History was already saved in _run(); save again in case of race.
+                if docDir:
+                    lib_settings.saveHistoryForDir(docDir, newHistory)
+                else:
+                    lib_settings.saveHistory(newHistory)
+
+        except Exception as e:
+            print(f"Error in LLMCompletionCallback.notify: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            # Always re-enable the Send button
+            try:
+                sendButton = self.panelWin.getControl("SendButton")
+                sendButton.getModel().Label = "Send"
+                sendButton.setActionCommand("Send_OnClick")
+                sendButton.getModel().Enabled = True
+            except Exception:
+                pass
+
+
+# ---------------------------------------------------------------------------
+# Button event handler
+# ---------------------------------------------------------------------------
+
 class ActionEventHandler(unohelper.Base, XActionListener):
-    """
-    Handles all button click events.
-    """
-    
+    """Handles all button click events."""
+
     def __init__(self, factory):
         self.factory = factory
-    
+
     def actionPerformed(self, event):
         """Main event router for all button actions."""
-        
+
         # ---- Send ----
         if event.ActionCommand == "Send_OnClick":
             try:
-                inputControl = self.factory.panelWin.getControl("InputField")
-                historyControl = self.factory.panelWin.getControl("ChatHistory")
+                # Derive the panel window from the button that was clicked.
+                # This is always the correct panel, even if the user switches
+                # windows during processing.
+                panelWin      = event.Source.getContext()
+                inputControl  = panelWin.getControl("InputField")
+                historyControl = panelWin.getControl("ChatHistory")
+                sendButton    = event.Source
 
                 userText = inputControl.getText()
-                if userText.strip():
-                    currentHistory = historyControl.getText()
-                    newHistory = currentHistory + "User:\n" + userText + "\n\n"
-                    historyControl.setText(newHistory)
+                if not userText.strip():
+                    return
 
-                    model = historyControl.getModel()
-                    wasReadOnly = model.ReadOnly
-                    model.ReadOnly = False
-                    textLength = len(newHistory)
-                    historyControl.setSelection(uno.createUnoStruct(
-                        "com.sun.star.awt.Selection", textLength, textLength))
-                    model.ReadOnly = wasReadOnly
+                # Append user message to chat
+                currentHistory = historyControl.getText()
+                newHistory     = currentHistory + "User:\n" + userText + "\n\n"
+                historyControl.setText(newHistory)
+                _scrollToEnd(historyControl, newHistory)
+                inputControl.setText("")
 
-                    inputControl.setText("")
-
+                # Handle special commands synchronously
+                if userText.strip().startswith("__"):
                     responseText = core.handleUserInput(userText, newHistory)
-
                     if responseText:
-                        currentHistory = historyControl.getText()
-                        newHistory = currentHistory + responseText + "\n\n"
+                        newHistory = newHistory + responseText + "\n\n"
                         historyControl.setText(newHistory)
-
-                        model = historyControl.getModel()
-                        wasReadOnly = model.ReadOnly
-                        model.ReadOnly = False
-                        textLength = len(newHistory)
-                        historyControl.setSelection(uno.createUnoStruct(
-                            "com.sun.star.awt.Selection", textLength, textLength))
-                        model.ReadOnly = wasReadOnly
-
-                        # Save history to disk
+                        _scrollToEnd(historyControl, newHistory)
                         lib_settings.saveHistory(newHistory)
+                    return
+
+                # Resolve provider module
+                providerKey = None
+                prompt      = userText
+                for prefix in list(core.PROVIDERS.keys()) + list(core.PROVIDER_ALIASES.keys()):
+                    if userText.lower().startswith(prefix + " "):
+                        providerKey = core.PROVIDER_ALIASES.get(prefix, prefix)
+                        prompt      = userText[len(prefix) + 1:]
+                        break
+
+                if providerKey is None:
+                    globalSettings = lib_settings.loadGlobalSettings()
+                    providerKey    = globalSettings.get("default_provider", core.DEFAULT_PROVIDER)
+
+                moduleName = core.PROVIDERS.get(providerKey)
+                if not moduleName:
+                    return
+
+                try:
+                    providerModule = importlib.import_module(moduleName)
+                except ImportError:
+                    return
+
+                # Show processing indicator
+                workingHistory = newHistory + t('processing_info') + "\n\n"
+                historyControl.setText(workingHistory)
+                _scrollToEnd(historyControl, workingHistory)
+
+                # Disable buttons during processing
+                sendButton.getModel().Enabled = False
+                panelWin.getControl("UndoButton").getModel().Enabled = False
+                panelWin.getControl("RedoButton").getModel().Enabled = False
+
+                # Capture the document at click time (before possible window switch)
+                doc = lib_document.getCurrentDocument()
+
+                # Start async call
+                callback = LLMCompletionCallback(self.factory, panelWin, newHistory)
+                self.factory._activeCallback = callback
+                core.callLLMAsync(providerModule, prompt, newHistory, callback, doc)
 
             except Exception as e:
                 print("Error in Send_OnClick:", e)
                 import traceback
                 traceback.print_exc()
+                try:
+                    event.Source.getModel().Enabled = True
+                except Exception:
+                    pass
+
+        # ---- Cancel ----
+        elif event.ActionCommand == "Cancel_OnClick":
+            try:
+                callback = getattr(self.factory, '_activeCallback', None)
+                if callback and callback.process:
+                    callback.process.kill()
+            except Exception as e:
+                print(f"Error in Cancel: {e}")
 
         # ---- Undo ----
         elif event.ActionCommand == "Undo_OnClick":
@@ -153,17 +287,14 @@ class ActionEventHandler(unohelper.Base, XActionListener):
         # ---- Reset Session ----
         elif event.ActionCommand == "ResetSession_OnClick":
             try:
-                # Sicherheitsabfrage
                 result = showMessageBox(
                     t("reset_session_title"),
                     t("reset_session_confirm"),
                     messageType="querybox",
                     buttons=4
                 )
-                
-                if result == 2:  # Yes clicked
+                if result == 2:  # Yes
                     lib_settings.resetSession()
-                    
                     showMessageBox(
                         t("reset_session_success_title"),
                         t("reset_session_success"),
@@ -174,7 +305,7 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                 print("Error in ResetSession:", e)
                 showMessageBox(
                     t("error_title"),
-                    t("reset_session_error", "Failed to reset session: {error}").format(error=str(e)),
+                    t("reset_session_error", error=str(e)),
                     messageType="errorbox",
                     buttons=1
                 )
@@ -182,20 +313,16 @@ class ActionEventHandler(unohelper.Base, XActionListener):
         # ---- Clear History ----
         elif event.ActionCommand == "ClearHistory_OnClick":
             try:
-                # Sicherheitsabfrage
                 result = showMessageBox(
                     t("clear_history_title"),
                     t("clear_history_confirm"),
                     messageType="querybox",
                     buttons=4
                 )
-                
-                if result == 2:  # Yes clicked
+                if result == 2:  # Yes
                     lib_settings.clearHistory()
-
                     historyControl = self.factory.panelWin.getControl("ChatHistory")
                     historyControl.setText("Chat History\n")
-                    
                     showMessageBox(
                         t("clear_history_success_title"),
                         t("clear_history_success"),
@@ -206,7 +333,7 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                 print("Error in ClearHistory:", e)
                 showMessageBox(
                     t("error_title"),
-                    t("clear_history_error", "Failed to clear history: {error}").format(error=str(e)),
+                    t("clear_history_error", error=str(e)),
                     messageType="errorbox",
                     buttons=1
                 )
@@ -220,7 +347,7 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                     messageType="querybox",
                     buttons=4
                 )
-                if result == 2:  # Yes clicked
+                if result == 2:  # Yes
                     if lib_settings.deleteAllData():
                         historyControl = self.factory.panelWin.getControl("ChatHistory")
                         historyControl.setText("Chat History\n")
@@ -241,64 +368,83 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                 print("Error in DeleteAllData:", e)
 
 
+# ---------------------------------------------------------------------------
+# Settings-view listeners
+# ---------------------------------------------------------------------------
+
 class ProviderChangeListener(unohelper.Base, XItemListener):
-    """
-    Handles provider dropdown changes.
-    """
-    
+    """Handles provider dropdown changes."""
+
     def __init__(self, factory):
         self.factory = factory
-        
+
     def itemStateChanged(self, event):
         try:
             globalSettings = lib_settings.loadGlobalSettings()
-            providerList = self.factory.panelWin.getControl("ProviderList")
-            selectedItems = providerList.getSelectedItemPos()
-            
-            if selectedItems >= 0:
-                # Save selected provider
-                globalSettings["default_provider"] = providerList.getItem(selectedItems)
+            providerList   = self.factory.panelWin.getControl("ProviderList")
+            idx            = providerList.getSelectedItemPos()
+            if idx >= 0:
+                globalSettings["default_provider"] = providerList.getItem(idx)
                 lib_settings.saveGlobalSettings(globalSettings)
         except Exception as e:
             print(f"Error saving provider: {e}")
-            
+
     def disposing(self, event):
         pass
 
 
 class TimeoutChangeListener(unohelper.Base, XTextListener):
-    """
-    Handles timeout field changes.
-    """
-    
+    """Handles timeout field changes."""
+
     def __init__(self, factory):
         self.factory = factory
-        
+
     def textChanged(self, event):
         try:
             globalSettings = lib_settings.loadGlobalSettings()
-            timeoutField = self.factory.panelWin.getControl("TimeoutField")
+            timeoutField   = self.factory.panelWin.getControl("TimeoutField")
             globalSettings["timeout"] = int(timeoutField.getValue())
             lib_settings.saveGlobalSettings(globalSettings)
         except Exception as e:
             print(f"Error saving timeout: {e}")
-            
+
     def disposing(self, event):
         pass
 
 
+class InstructionsChangeListener(unohelper.Base, XTextListener):
+    """Handles custom instructions field changes."""
+
+    def __init__(self, factory):
+        self.factory = factory
+
+    def textChanged(self, event):
+        try:
+            globalSettings     = lib_settings.loadGlobalSettings()
+            instructionsField  = self.factory.panelWin.getControl("InstructionsField")
+            globalSettings["custom_instructions"] = instructionsField.getText()
+            lib_settings.saveGlobalSettings(globalSettings)
+        except Exception as e:
+            print(f"Error saving instructions: {e}")
+
+    def disposing(self, event):
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Document event listeners
+# ---------------------------------------------------------------------------
+
 class SaveAsListener(unohelper.Base, XDocumentEventListener):
-    """
-    Handles Save As events for settings migration.
-    """
-    
+    """Handles Save As events for settings migration."""
+
     def __init__(self):
         self.oldPath = None
-    
+
     def documentEventOccured(self, event):
         if event.EventName == "OnSaveAsDone":
             try:
-                doc = event.Source
+                doc     = event.Source
                 newPath = uno.fileUrlToSystemPath(doc.getURL())
                 lib_settings.migrateSettingsIfNeeded(self.oldPath, newPath)
                 self.oldPath = newPath
@@ -306,26 +452,6 @@ class SaveAsListener(unohelper.Base, XDocumentEventListener):
                 print(f"Error in SaveAs listener: {e}")
                 import traceback
                 traceback.print_exc()
-    
-    def disposing(self, event):
-        pass
 
-class InstructionsChangeListener(unohelper.Base, XTextListener):
-    """
-    Handles custom instructions field changes.
-    """
-    
-    def __init__(self, factory):
-        self.factory = factory
-        
-    def textChanged(self, event):
-        try:
-            globalSettings = lib_settings.loadGlobalSettings()
-            instructionsField = self.factory.panelWin.getControl("InstructionsField")
-            globalSettings["custom_instructions"] = instructionsField.getText()
-            lib_settings.saveGlobalSettings(globalSettings)
-        except Exception as e:
-            print(f"Error saving instructions: {e}")
-            
     def disposing(self, event):
         pass
