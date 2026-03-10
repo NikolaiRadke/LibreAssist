@@ -43,7 +43,7 @@ LibreAssist is a LibreOffice extension that brings AI-powered writing assistance
 - **Mistral Vibe CLI** - Mistral AI models via command-line interface
   - Install: `pip install mistral-vibe`
   - ⚠️ Experimental: Mistral Vibe does not natively support LibreOffice files.
-    LibreAssist works around this via automatic ODT post-processing, which may not always produce correct results.
+    LibreAssist works around this via automatic ODT post-processing, which may not always produce correct results. Files can be corrupted.  
     
 ### ❌ Tested But Not Compatible
 
