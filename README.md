@@ -8,7 +8,7 @@ LibreAssist is a LibreOffice extension that brings AI-powered writing assistance
 **LibreOffice Extensions page**: https://extensions.libreoffice.org/en/extensions/show/99521
 
 🆕 What's new?  
-* **09.03.2026** **Release V1.0.2** with bugfixes and non-blocking UI.  
+* **10.03.2026** **Release V1.0.3** with provider settings and support for Mistal Vibe.    
     -- More news? Check the [newsblog](https://github.com/NikolaiRadke/LibreAssist/blob/main/NEWS.md).
 
 ## Features
@@ -40,13 +40,17 @@ LibreAssist is a LibreOffice extension that brings AI-powered writing assistance
   - Requires Node.js v20+
   - Supports LibreOffice files natively
 
+- - **Mistral Vibe CLI** - Mistral AI models via command-line interface
+  - Install: `pip install mistral-vibe`
+  - ⚠️ Experimental: Mistral Vibe does not natively support LibreOffice files.
+    LibreAssist works around this via automatic ODT post-processing, which may not always produce correct results.
+    
 ### ❌ Tested But Not Compatible
 
 The following providers were tested but **cannot edit LibreOffice .odt files**:
 
 - **Gemini CLI** - Google's Gemini models
 - **Groq Code** - Groq's LPU-accelerated models  
-- **Mistral Vibe** - Mistral AI models
 
 These providers work for chat-only interactions but lack the ability to manipulate LibreOffice document formats. 
 For use with API Providers, there are many ohter extensions, like [LibreThinker](https://github.com/mihailthebuilder/librethinker-extension).  
@@ -69,6 +73,9 @@ For use with API Providers, there are many ohter extensions, like [LibreThinker]
    
    # For Codex CLI:
    # Follow instructions at https://github.com/microsoft/codex-cli
+
+   # For Mistral Vibe (experimental):
+   pip install mistral-vibe
    ```
 
 3. **Install the Extension:**
@@ -103,6 +110,7 @@ You can specify which provider to use by prefixing your prompt:
 ```
 claude Write an executive summary
 codex Fix all typos in this document
+mistral Change background color to blue
 ```
 
 Without a prefix, the default provider (set in Settings) will be used.
@@ -122,6 +130,9 @@ Click the **⚙ Settings** button to configure:
 - **Timeout** - Maximum processing time (60-3600 seconds)
 - **Reset Session** - Start a new conversation (with confirmation dialog)
 - **Clear History** - Delete the chat history (with confirmation dialog)
+- **Custom Instructions** - Instructions included in every request
+- **Open Provider Config** - Edit `providers.json` to add or customize providers
+- **Delete All Data** - Remove all chat history, backups and settings
 
 ## Configuration
 
