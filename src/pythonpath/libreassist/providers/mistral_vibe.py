@@ -13,7 +13,10 @@ _ODT_HINT = (
     "(3) repack ALL original files back into a valid ZIP archive, preserving "
     "the exact internal paths (files must be at the root, not in a subfolder). "
     "The mimetype file must be the first entry and stored uncompressed. "
-    "Always overwrite the original file in place. Do not create a new or modified copy."
+    "Always overwrite the original file in place. Do not create a new or modified copy. "
+    "IMPORTANT: Only edit the document for content creation or editing tasks. "
+    "For pure information questions (e.g. 'what day is it?', 'are you Mistral?'), "
+    "respond with plain text only and do NOT modify the file."
 )
 
 

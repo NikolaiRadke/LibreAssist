@@ -19,7 +19,8 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
     _CHAT_CONTROLS = ["ChatHistory", "InputField", "SendButton", "InfoLabel"]
     _SETTINGS_CONTROLS = ["ProviderLabel", "ProviderList", "TimeoutLabel", "TimeoutField",
                           "InstructionsLabel", "InstructionsField",
-                          "ResetSessionButton", "ClearHistoryButton", "DeleteAllDataButton"]
+                          "ResetSessionButton", "ClearHistoryButton", "DeleteAllDataButton",
+                          "OpenProviderConfigButton"]
     _ABOUT_CONTROLS = ["AboutLogo", "AboutText"]
 
     def __init__(self, ctx):
@@ -353,6 +354,17 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         deleteAllDataModel.Label = getLocalizedString("settings_delete_all_data", "Delete All Data")
         dialogModel.insertByName("DeleteAllDataButton", deleteAllDataModel)
 
+        # Open provider config button
+        openConfigModel = dialogModel.createInstance("com.sun.star.awt.UnoControlButtonModel")
+        openConfigModel.Name = "OpenProviderConfigButton"
+        openConfigModel.TabIndex = 10
+        openConfigModel.PositionX = 10
+        openConfigModel.PositionY = 310
+        openConfigModel.Width = 130
+        openConfigModel.Height = 23
+        openConfigModel.Label = getLocalizedString("settings_open_provider_config", "Open Provider Config")
+        dialogModel.insertByName("OpenProviderConfigButton", openConfigModel)
+
     def _createAboutView(self, dialogModel):
         """Create about view components."""
     
@@ -388,9 +400,10 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         eventHandler = ActionEventHandler(self)
         
         # Button events
-        for buttonName in ["SendButton", "UndoButton", "RedoButton", "SettingsButton", 
-                          "AboutButton", "BackButton", "ResetSessionButton", 
-                          "ClearHistoryButton", "DeleteAllDataButton"]:
+        for buttonName in ["SendButton", "UndoButton", "RedoButton", "SettingsButton",
+                          "AboutButton", "BackButton", "ResetSessionButton",
+                          "ClearHistoryButton", "DeleteAllDataButton",
+                          "OpenProviderConfigButton"]:
             panelWin.getControl(buttonName).addActionListener(eventHandler)
             panelWin.getControl(buttonName).setActionCommand(f"{buttonName.replace('Button', '')}_OnClick")
 

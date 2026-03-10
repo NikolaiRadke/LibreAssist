@@ -9,29 +9,51 @@ import uno
 from .i18n import t
 from .document import getCurrentDocument
 from . import discovery, provider_base, settings, backup
-from .providers import claude_code, codex_cli
 
 
 # ---------------------------------------------------------------------------
-# Provider registry
+# Provider registry  (built dynamically from provider config)
 # ---------------------------------------------------------------------------
-
-# Registered CLI providers
-PROVIDERS = {
-    "claude_code": "libreassist.providers.claude_code",
-    "codex_cli":   "libreassist.providers.codex_cli",
-}
-
-# Aliases for short prefix input
-PROVIDER_ALIASES = {
-    "claude": "claude_code",
-    "codex":  "codex_cli",
-}
-
-# Reverse mapping for display names
-DISPLAY_NAMES = {v: k.title() for k, v in PROVIDER_ALIASES.items()}
 
 DEFAULT_PROVIDER = "claude_code"
+
+
+def _buildProviderRegistry():
+    """Build provider dicts from user provider config."""
+    from libreassist.settings import loadProviderConfig
+    config = loadProviderConfig()
+
+    providers    = {}
+    displayNames = {}
+
+    for name, entry in config.items():
+        providers[name]    = f"libreassist.providers.{name}"
+        displayNames[name] = entry.get("display_name", name.title())
+
+    return providers, displayNames
+
+
+def getProviders():
+    """Return {name: module_path} dict for all configured providers."""
+    providers, _ = _buildProviderRegistry()
+    return providers
+
+
+def getDisplayNames():
+    """Return {name: display_name} dict for all configured providers."""
+    _, displayNames = _buildProviderRegistry()
+    return displayNames
+
+
+def getAliases():
+    """Return {alias: provider_name} for prefix matching in chat."""
+    from libreassist.settings import loadProviderConfig
+    config = loadProviderConfig()
+    aliases = {}
+    for name, entry in config.items():
+        key = entry.get("alias") or entry.get("display_name", name).lower()
+        aliases[key] = name
+    return aliases
 
 
 # ---------------------------------------------------------------------------
@@ -163,7 +185,7 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
             modTimeAfter    = os.stat(fullPath).st_mtime
             fileWasModified = (modTimeAfter != modTimeBefore)
 
-            displayName  = DISPLAY_NAMES.get(providerModule.NAME, "Assistant")
+            displayName  = getDisplayNames().get(providerModule.NAME, "Assistant")
             responseText = f"{displayName}:\n{collectedText.strip()}"
 
         except TimeoutError:
@@ -244,10 +266,9 @@ def discoverProviders():
     Discover all installed CLI providers and cache results in global settings.
     Called once on startup.
     """
-    allProviders = [
-        claude_code.NAME,
-        codex_cli.NAME,
-    ]
+    from libreassist.settings import loadProviderConfig
+    config      = loadProviderConfig()
+    allProviders = list(config.keys())
 
     found = discovery.discoverAllProviders(allProviders)
 

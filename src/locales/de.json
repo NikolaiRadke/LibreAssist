@@ -43,5 +43,6 @@
   "delete_all_data_error": "Fehler beim Löschen der Daten: {error}",
   "cancel_button": "Abbrechen",
   "send_button": "Senden",
-  "cancelled": "Abgebrochen"
+  "cancelled": "Abgebrochen",
+  "settings_open_provider_config": "Provider-Konfiguration öffnen"
 }

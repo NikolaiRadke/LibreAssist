@@ -401,3 +401,59 @@ def deleteAllData():
     except Exception as e:
         print(f"Error deleting all data: {e}")
         return False
+
+
+# ---------------------------------------------------------------------------
+# Provider configuration
+# ---------------------------------------------------------------------------
+
+def getProviderConfigFile():
+    """Get path to the user-editable provider config file."""
+    try:
+        baseDir = getLibreAssistDir()
+        if not baseDir:
+            return None
+        return os.path.join(baseDir, "providers.json")
+    except Exception as e:
+        print(f"Error getting provider config file: {e}")
+        return None
+
+
+def loadProviderConfig():
+    """
+    Load provider config from user data dir.
+    If it doesn't exist yet, copy the default from the extension package.
+    Returns: dict of provider entries, or empty dict on failure.
+    """
+    import json, shutil
+
+    userFile = getProviderConfigFile()
+    if not userFile:
+        return {}
+
+    if not os.path.exists(userFile):
+        # Copy default from extension package
+        try:
+            ctx = uno.getComponentContext()
+            pip = ctx.getValueByName(
+                "/singletons/com.sun.star.deployment.PackageInformationProvider")
+            extensionPath = pip.getPackageLocation("org.libreoffice.libreassist")
+            if extensionPath.startswith("vnd.sun.star.expand:"):
+                pathSubst = ctx.ServiceManager.createInstance(
+                    "com.sun.star.util.PathSubstitution")
+                extensionPath = pathSubst.substituteVariables(extensionPath, True)
+            if extensionPath.startswith("file://"):
+                extensionPath = uno.fileUrlToSystemPath(extensionPath)
+            defaultFile = os.path.join(extensionPath, "providers.json")
+            if os.path.exists(defaultFile):
+                shutil.copy2(defaultFile, userFile)
+        except Exception as e:
+            print(f"Error copying default providers.json: {e}")
+            return {}
+
+    try:
+        with open(userFile, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading provider config: {e}")
+        return {}

@@ -43,5 +43,6 @@
   "delete_all_data_error": "Error al eliminar los datos: {error}",
   "cancel_button": "Cancelar",
   "send_button": "Enviar",
-  "cancelled": "Cancelado"
+  "cancelled": "Cancelado",
+  "settings_open_provider_config": "Abrir configuración de proveedor"
 }

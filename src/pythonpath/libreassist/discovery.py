@@ -130,6 +130,7 @@ def _getNvmNodePaths():
 def discoverProvider(providerName):
     """
     Discover a single provider by its module NAME constant.
+    Reads executable name from user provider config.
 
     Args:
         providerName: Value of provider module's NAME constant
@@ -138,17 +139,14 @@ def discoverProvider(providerName):
     Returns:
         Full path string or None if not found
     """
-    # Map provider NAME → executable name
-    executableNames = {
-        "claude_code": "claude",
-        "codex_cli":   "codex",
-        # "gemini_cli":  "gemini",  # Cannot edit .odt files
-        "mistral_vibe": "vibe",  # Cannot edit .odt files
-        # "opencode":    "opencode",  # Cannot edit .odt files
-        # "groq_code":   "groq",  # Cannot edit .odt files
-    }
+    try:
+        from libreassist.settings import loadProviderConfig
+        config = loadProviderConfig()
+        entry = config.get(providerName, {})
+        execName = entry.get("executable")
+    except Exception:
+        execName = None
 
-    execName = executableNames.get(providerName)
     if not execName:
         return None
 
@@ -171,6 +169,7 @@ def discoverAllProviders(providerNames):
         if path:
             discovered[name] = path
     return discovered
+
 
 def findNodeJS():
     """

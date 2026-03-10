@@ -22,4 +22,6 @@
                          manifest:full-path="icons/logo-32.png"/>
     <manifest:file-entry manifest:media-type="image/png"
                          manifest:full-path="icons/logo-48.png"/>
+    <manifest:file-entry manifest:media-type="application/json"
+                         manifest:full-path="providers.json"/>
 </manifest:manifest>

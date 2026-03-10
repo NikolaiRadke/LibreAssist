@@ -43,5 +43,6 @@
   "delete_all_data_error": "Échec de la suppression : {error}",
   "cancel_button": "Annuler",
   "send_button": "Envoyer",
-  "cancelled": "Annulé"
+  "cancelled": "Annulé",
+  "settings_open_provider_config": "Ouvrir la config des fournisseurs"
 }

@@ -193,9 +193,9 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                 # Resolve provider module
                 providerKey = None
                 prompt      = userText
-                for prefix in list(core.PROVIDERS.keys()) + list(core.PROVIDER_ALIASES.keys()):
+                for prefix in list(core.getProviders().keys()) + list(core.getAliases().keys()):
                     if userText.lower().startswith(prefix + " "):
-                        providerKey = core.PROVIDER_ALIASES.get(prefix, prefix)
+                        providerKey = core.getAliases().get(prefix, prefix)
                         prompt      = userText[len(prefix) + 1:]
                         break
 
@@ -203,7 +203,7 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                     globalSettings = lib_settings.loadGlobalSettings()
                     providerKey    = globalSettings.get("default_provider", core.DEFAULT_PROVIDER)
 
-                moduleName = core.PROVIDERS.get(providerKey)
+                moduleName = core.getProviders().get(providerKey)
                 if not moduleName:
                     return
 
@@ -367,6 +367,29 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                         )
             except Exception as e:
                 print("Error in DeleteAllData:", e)
+
+        # ---- Open Provider Config ----
+        elif event.ActionCommand == "OpenProviderConfig_OnClick":
+            try:
+                import subprocess, sys
+                configFile = lib_settings.getProviderConfigFile()
+                if not configFile:
+                    return
+                # Ensure the file exists (copies default if needed)
+                lib_settings.loadProviderConfig()
+                if sys.platform == "win32":
+                    subprocess.Popen(["notepad", configFile])
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", "-t", configFile])
+                else:
+                    # Try common Linux editors, fall back to xdg-open
+                    for editor in ["xdg-open", "gedit", "kate", "mousepad"]:
+                        import shutil
+                        if shutil.which(editor):
+                            subprocess.Popen([editor, configFile])
+                            break
+            except Exception as e:
+                print(f"Error opening provider config: {e}")
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,23 @@
+{
+  "claude_code": {
+    "executable": "claude",
+    "display_name": "Claude",
+    "alias": "claude",
+    "needs_nodejs": false,
+    "post_process": false
+  },
+  "codex_cli": {
+    "executable": "codex",
+    "display_name": "Codex",
+    "alias": "codex",
+    "needs_nodejs": true,
+    "post_process": false
+  },
+  "mistral_vibe": {
+    "executable": "vibe",
+    "display_name": "Mistral Vibe",
+    "alias": "mistral",
+    "needs_nodejs": false,
+    "post_process": true
+  }
+}

@@ -1,12 +1,10 @@
-# Release V1.0.2
-
+# Release V1.0.3
 
 ### Added
-- You can now abort a request by cancel button
+- Mistral Vibe CLI (EXPERIMENTAL!)
+- Provider configuration via `providers.json` – add or customize providers without touching the code
+- "Open Provider Config" button in Settings for access to the config file
+- Chat prefix aliases are now configurable per provider
 
 ### Bugfixes
-- Fixed Send button being clipped on high-DPI or large-font setups (Thanks to blshkv)
-- Fixed Send button occasionally not rendering due to duplicate TabIndex conflict (Thanls to blshkv)
-
-### Other
-- Requests no longer block the LibreOffice UI
+- Provider prefix matching in chat restored after registry refactor
