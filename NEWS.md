@@ -2,6 +2,7 @@
 
 ## 2026
 
+* **10.03.2026** **Release V1.0.3** with provider settings and support for Mistal Vibe.    
 * **09.03.2026** **Release V1.0.2** with bugfixes and non-blocking UI.  
 * **09.02.2026** Fixed some send button bugs.
 * **08.02.2026** Requests will not block the UI anymore.  
