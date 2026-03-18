@@ -4,6 +4,7 @@
 NAME = "codex_cli"
 EXECUTABLE = "codex"  # Fallback if auto-discovery fails
 NEEDS_NODEJS = True
+SUPPORTS_STREAMING = False
 
 
 def buildArgs(prompt, sessionId=None, executable=EXECUTABLE):

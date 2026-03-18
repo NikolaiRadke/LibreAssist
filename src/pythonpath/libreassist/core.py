@@ -9,51 +9,29 @@ import uno
 from .i18n import t
 from .document import getCurrentDocument
 from . import discovery, provider_base, settings, backup
+from .providers import claude_code, codex_cli
 
 
 # ---------------------------------------------------------------------------
-# Provider registry  (built dynamically from provider config)
+# Provider registry
 # ---------------------------------------------------------------------------
+
+# Registered CLI providers
+PROVIDERS = {
+    "claude_code": "libreassist.providers.claude_code",
+    "codex_cli":   "libreassist.providers.codex_cli",
+}
+
+# Aliases for short prefix input
+PROVIDER_ALIASES = {
+    "claude": "claude_code",
+    "codex":  "codex_cli",
+}
+
+# Reverse mapping for display names
+DISPLAY_NAMES = {v: k.title() for k, v in PROVIDER_ALIASES.items()}
 
 DEFAULT_PROVIDER = "claude_code"
-
-
-def _buildProviderRegistry():
-    """Build provider dicts from user provider config."""
-    from libreassist.settings import loadProviderConfig
-    config = loadProviderConfig()
-
-    providers    = {}
-    displayNames = {}
-
-    for name, entry in config.items():
-        providers[name]    = f"libreassist.providers.{name}"
-        displayNames[name] = entry.get("display_name", name.title())
-
-    return providers, displayNames
-
-
-def getProviders():
-    """Return {name: module_path} dict for all configured providers."""
-    providers, _ = _buildProviderRegistry()
-    return providers
-
-
-def getDisplayNames():
-    """Return {name: display_name} dict for all configured providers."""
-    _, displayNames = _buildProviderRegistry()
-    return displayNames
-
-
-def getAliases():
-    """Return {alias: provider_name} for prefix matching in chat."""
-    from libreassist.settings import loadProviderConfig
-    config = loadProviderConfig()
-    aliases = {}
-    for name, entry in config.items():
-        key = entry.get("alias") or entry.get("display_name", name).lower()
-        aliases[key] = name
-    return aliases
 
 
 # ---------------------------------------------------------------------------
@@ -109,7 +87,7 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
         _fireCallback(completionCallback)
         return
 
-    fullPath = uno.fileUrlToSystemPath(url)
+    fullPath  = uno.fileUrlToSystemPath(url)
     directory = os.path.dirname(fullPath)
     filename  = os.path.basename(fullPath)
 
@@ -126,15 +104,15 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
 
     modTimeBefore = os.stat(fullPath).st_mtime
 
-    frame = doc.getCurrentController().getFrame()
+    frame     = doc.getCurrentController().getFrame()
     frameName = frame.getName()
     if not frameName:
         frameName = f"la_{id(frame)}"
         frame.setName(frameName)
 
     settingsData = settings.loadSettingsForDir(docDir, fullPath)
-    sessionId = settingsData.get("session_ids", {}).get(providerModule.NAME)
-    timeout   = settingsData.get("timeout", 600)
+    sessionId    = settingsData.get("session_ids", {}).get(providerModule.NAME)
+    timeout      = settingsData.get("timeout", 600)
 
     globalSettings     = settings.loadGlobalSettings()
     customInstructions = globalSettings.get("custom_instructions", "").strip()
@@ -163,13 +141,25 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
     def _run():
         import shutil
 
-        responseText   = None
-        newSessionId   = None
+        responseText    = None
+        newSessionId    = None
         fileWasModified = False
+        displayName     = DISPLAY_NAMES.get(providerModule.NAME, "Assistant")
 
         try:
             def _onProcess(proc):
                 completionCallback.process = proc
+
+            _streamBuffer = []
+
+            def _onChunk(delta):
+                _streamBuffer.append(delta)
+                cumulativeText = "".join(_streamBuffer)
+                completionCallback.payload = {
+                    "partial":   True,
+                    "chunkText": f"{displayName}:\n{cumulativeText}",
+                }
+                asyncCb.addCallback(completionCallback, None)
 
             result = provider_base.executeProvider(
                 providerModule,
@@ -177,7 +167,8 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
                 directory,
                 sessionId=sessionId,
                 timeout=timeout,
-                onProcess=_onProcess
+                onProcess=_onProcess,
+                onChunk=_onChunk,
             )
             collectedText  = result.get("response", "")
             newSessionId   = result.get("sessionId")
@@ -185,7 +176,6 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
             modTimeAfter    = os.stat(fullPath).st_mtime
             fileWasModified = (modTimeAfter != modTimeBefore)
 
-            displayName  = getDisplayNames().get(providerModule.NAME, "Assistant")
             responseText = f"{displayName}:\n{collectedText.strip()}"
 
         except TimeoutError:
@@ -266,9 +256,10 @@ def discoverProviders():
     Discover all installed CLI providers and cache results in global settings.
     Called once on startup.
     """
-    from libreassist.settings import loadProviderConfig
-    config      = loadProviderConfig()
-    allProviders = list(config.keys())
+    allProviders = [
+        claude_code.NAME,
+        codex_cli.NAME,
+    ]
 
     found = discovery.discoverAllProviders(allProviders)
 

@@ -81,18 +81,31 @@ class LLMCompletionCallback(unohelper.Base, XCallback):
     """
 
     def __init__(self, factory, panelWin, historyBeforeResponse):
-        self.factory              = factory
-        self.panelWin             = panelWin             # Captured at Send click time
+        self.factory               = factory
+        self.panelWin              = panelWin             # Captured at Send click time
         self.historyBeforeResponse = historyBeforeResponse
-        self.payload              = None  # Set by _run() before asyncCb.addCallback()
-        self.process              = None  # Subprocess handle, set via onProcess callback
+        self.payload               = None  # Set by _run() before asyncCb.addCallback()
+        self.process               = None  # Subprocess handle, set via onProcess callback
 
     def notify(self, data):
         """Runs on the Main-UNO-Thread – safe to call UNO APIs."""
         try:
             import time
 
-            payload         = self.payload or {}
+            payload = self.payload or {}
+
+            # --- Partial chunk: just update the chat display ---
+            if payload.get("partial"):
+                historyControl = self.panelWin.getControl("ChatHistory")
+                newHistory = self.historyBeforeResponse + payload.get("chunkText", "") + "\n\n"
+                model = historyControl.getModel()
+                model.ReadOnly = False
+                historyControl.setText(newHistory)
+                model.ReadOnly = True
+                _scrollToEnd(historyControl, newHistory)
+                return
+
+            # --- Final response ---
             responseText    = payload.get("response") or payload.get("error") or t('error_general', error="No response")
             fileWasModified = payload.get("fileWasModified", False)
             docDir          = payload.get("docDir")
@@ -120,7 +133,7 @@ class LLMCompletionCallback(unohelper.Base, XCallback):
                 except Exception as e:
                     print(f"Error reloading document: {e}")
             else:
-                # No file change: update chat history display manually.
+                # No file change: update chat history display with final text.
                 newHistory = self.historyBeforeResponse + responseText + "\n\n"
                 historyControl.setText(newHistory)
                 _scrollToEnd(historyControl, newHistory)
@@ -135,14 +148,15 @@ class LLMCompletionCallback(unohelper.Base, XCallback):
             import traceback
             traceback.print_exc()
         finally:
-            # Always re-enable the Send button
-            try:
-                sendButton = self.panelWin.getControl("SendButton")
-                sendButton.getModel().Label = t("send_button")
-                sendButton.setActionCommand("Send_OnClick")
-                sendButton.getModel().Enabled = True
-            except Exception:
-                pass
+            # Re-enable Send button only on final response
+            if not (self.payload or {}).get("partial"):
+                try:
+                    sendButton = self.panelWin.getControl("SendButton")
+                    sendButton.getModel().Label = t("send_button")
+                    sendButton.setActionCommand("Send_OnClick")
+                    sendButton.getModel().Enabled = True
+                except Exception:
+                    pass
 
 
 # ---------------------------------------------------------------------------
@@ -164,10 +178,10 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                 # Derive the panel window from the button that was clicked.
                 # This is always the correct panel, even if the user switches
                 # windows during processing.
-                panelWin      = event.Source.getContext()
-                inputControl  = panelWin.getControl("InputField")
+                panelWin       = event.Source.getContext()
+                inputControl   = panelWin.getControl("InputField")
                 historyControl = panelWin.getControl("ChatHistory")
-                sendButton    = event.Source
+                sendButton     = event.Source
 
                 userText = inputControl.getText()
                 if not userText.strip():
@@ -193,9 +207,9 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                 # Resolve provider module
                 providerKey = None
                 prompt      = userText
-                for prefix in list(core.getProviders().keys()) + list(core.getAliases().keys()):
+                for prefix in list(core.PROVIDERS.keys()) + list(core.PROVIDER_ALIASES.keys()):
                     if userText.lower().startswith(prefix + " "):
-                        providerKey = core.getAliases().get(prefix, prefix)
+                        providerKey = core.PROVIDER_ALIASES.get(prefix, prefix)
                         prompt      = userText[len(prefix) + 1:]
                         break
 
@@ -203,7 +217,7 @@ class ActionEventHandler(unohelper.Base, XActionListener):
                     globalSettings = lib_settings.loadGlobalSettings()
                     providerKey    = globalSettings.get("default_provider", core.DEFAULT_PROVIDER)
 
-                moduleName = core.getProviders().get(providerKey)
+                moduleName = core.PROVIDERS.get(providerKey)
                 if not moduleName:
                     return
 
@@ -368,29 +382,6 @@ class ActionEventHandler(unohelper.Base, XActionListener):
             except Exception as e:
                 print("Error in DeleteAllData:", e)
 
-        # ---- Open Provider Config ----
-        elif event.ActionCommand == "OpenProviderConfig_OnClick":
-            try:
-                import subprocess, sys
-                configFile = lib_settings.getProviderConfigFile()
-                if not configFile:
-                    return
-                # Ensure the file exists (copies default if needed)
-                lib_settings.loadProviderConfig()
-                if sys.platform == "win32":
-                    subprocess.Popen(["notepad", configFile])
-                elif sys.platform == "darwin":
-                    subprocess.Popen(["open", "-t", configFile])
-                else:
-                    # Try common Linux editors, fall back to xdg-open
-                    for editor in ["xdg-open", "gedit", "kate", "mousepad"]:
-                        import shutil
-                        if shutil.which(editor):
-                            subprocess.Popen([editor, configFile])
-                            break
-            except Exception as e:
-                print(f"Error opening provider config: {e}")
-
 
 # ---------------------------------------------------------------------------
 # Settings-view listeners
@@ -444,8 +435,8 @@ class InstructionsChangeListener(unohelper.Base, XTextListener):
 
     def textChanged(self, event):
         try:
-            globalSettings     = lib_settings.loadGlobalSettings()
-            instructionsField  = self.factory.panelWin.getControl("InstructionsField")
+            globalSettings    = lib_settings.loadGlobalSettings()
+            instructionsField = self.factory.panelWin.getControl("InstructionsField")
             globalSettings["custom_instructions"] = instructionsField.getText()
             lib_settings.saveGlobalSettings(globalSettings)
         except Exception as e:

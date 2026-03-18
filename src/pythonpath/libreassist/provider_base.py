@@ -29,7 +29,7 @@ def _resolveExecutable(providerModule):
     return providerModule.EXECUTABLE
 
 
-def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=600, onProcess=None):
+def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=600, onProcess=None, onChunk=None):
     """
     Generic executor for any CLI provider.
     Uses buildArgs() and extractResponse() from the provider module.
@@ -41,7 +41,8 @@ def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=
         workingDir:     Working directory for the subprocess (document directory)
         sessionId:      Optional session ID for persistent providers
         timeout:        Timeout in seconds (default: 600)
-        onProcess:      Optional callback(process) called after Popen, before communicate()
+        onProcess:      Optional callback(process) called after Popen, before reading
+        onChunk:        Optional callback(text) called for each streaming chunk
 
     Returns:
         dict with 'response' (str) and 'sessionId' (str or None)
@@ -72,30 +73,69 @@ def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=
         cwd=workingDir
     )
 
-    # Pass process handle to caller before blocking on communicate()
+    # Pass process handle to caller before blocking on read
     if onProcess:
         onProcess(process)
 
-    # Wait with timeout and read completely
-    try:
-        stdout_bytes, stderr_bytes = process.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        stdout_bytes, stderr_bytes = process.communicate()
-        raise TimeoutError(f"Provider timed out after {timeout}s")
+    supportsStreaming = getattr(providerModule, 'SUPPORTS_STREAMING', False)
 
-    returncode = process.returncode
+    if supportsStreaming and onChunk:
+        # Streaming: read line by line, fire onChunk per chunk
+        import threading
+        import time
 
-    # Manually decode with error handling
-    try:
-        rawOutput = stdout_bytes.decode('utf-8')
-    except UnicodeDecodeError:
-        rawOutput = stdout_bytes.decode('utf-8', errors='replace')
+        stderrBuf = []
 
-    try:
-        stderr = stderr_bytes.decode('utf-8')
-    except UnicodeDecodeError:
-        stderr = stderr_bytes.decode('utf-8', errors='replace')
+        def _readStderr():
+            for line in process.stderr:
+                stderrBuf.append(line)
+
+        stderrThread = threading.Thread(target=_readStderr, daemon=True)
+        stderrThread.start()
+
+        rawLines = []
+        deadline = time.monotonic() + timeout
+
+        for rawLine in process.stdout:
+            if time.monotonic() > deadline:
+                process.kill()
+                process.communicate()
+                raise TimeoutError(f"Provider timed out after {timeout}s")
+            try:
+                line = rawLine.decode('utf-8')
+            except UnicodeDecodeError:
+                line = rawLine.decode('utf-8', errors='replace')
+            rawLines.append(line)
+            chunk = providerModule.extractStreamChunk(line)
+            if chunk:
+                onChunk(chunk)
+
+        process.wait()
+        stderrThread.join()
+        rawOutput  = "".join(rawLines)
+        stderr     = b"".join(stderrBuf).decode('utf-8', errors='replace')
+        returncode = process.returncode
+
+    else:
+        # Non-streaming: wait with timeout and read completely
+        try:
+            stdout_bytes, stderr_bytes = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            stdout_bytes, stderr_bytes = process.communicate()
+            raise TimeoutError(f"Provider timed out after {timeout}s")
+
+        returncode = process.returncode
+
+        try:
+            rawOutput = stdout_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            rawOutput = stdout_bytes.decode('utf-8', errors='replace')
+
+        try:
+            stderr = stderr_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            stderr = stderr_bytes.decode('utf-8', errors='replace')
 
     # If we got output, try to extract response even if returncode != 0
     if rawOutput.strip():
