@@ -126,6 +126,10 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
             # clip controls near the bottom (e.g. SendButton).
             infoCtrl = panelWin.getControl("InfoLabel")
             pos = infoCtrl.getPosSize()
+            panelWin.getControl("InputField").setFocus()
+
+            # Compute actual pixel height ...
+            infoCtrl = panelWin.getControl("InfoLabel")
             return pos.Y + pos.Height + 10
 
         return 100
@@ -222,6 +226,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         inputModel.MultiLine = True
         inputModel.VerticalAlign = "TOP"
         inputModel.AutoVScroll = True
+        inputModel.Tabstop = True 
         dialogModel.insertByName("InputField", inputModel)
 
         # Send button
