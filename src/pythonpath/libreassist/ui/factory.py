@@ -130,6 +130,10 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
 
             # Compute actual pixel height ...
             infoCtrl = panelWin.getControl("InfoLabel")
+             panelWin.getControl("InputField").setFocus()
+
+            # Compute actual pixel height ...
+            infoCtrl = panelWin.getControl("InfoLabel")
             return pos.Y + pos.Height + 10
 
         return 100
@@ -420,6 +424,9 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
 
         # Custom Instructions change listener
         panelWin.getControl("InstructionsField").addTextListener(InstructionsChangeListener(self))
+
+        # Debug
+        panelWin.getControl("InputField").addKeyListener(DebugKeyListener())
 
     def _initializeViewState(self, globalSettings, docSettings):
         """Initialize UI view state and control visibility."""
