@@ -155,7 +155,10 @@ LibreAssist automatically discovers installed CLI providers by searching:
 
 This is a maker project, not a professional software product. Contributions, bug reports, and feature requests are welcome through GitHub issues and pull requests.
 
----
+## 💙 Support LibreAssist  
 
-**Happy Writing with AI! 🚀**
+LibreAssist is free and open source. If it saved your day, consider buying me a coffee! ☕
+
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/NikolaiRadke?style=for-the-badge&logo=github&color=ea4aaa)](https://github.com/sponsors/NikolaiRadke)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/nikolairadke)
 
