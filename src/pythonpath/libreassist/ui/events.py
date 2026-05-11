@@ -4,24 +4,10 @@
 import importlib
 import uno
 import unohelper
-from com.sun.star.awt import XActionListener, XItemListener, XTextListener, XCallback
 from com.sun.star.document import XDocumentEventListener
 from libreassist.i18n import t
 from libreassist import core, settings as lib_settings, document as lib_document
-from com.sun.star.awt import XActionListener, XItemListener, XTextListener, XCallback, XKeyListener
-
-
-# ---------------------------------------------------------------------------
-# Debug
-# ---------------------------------------------------------------------------
-
-class DebugKeyListener(unohelper.Base, XKeyListener):
-    def keyPressed(self, event):
-        print(f"DEBUG keyPressed: keyCode={event.KeyCode} char={event.KeyChar!r}")
-    def keyReleased(self, event):
-        print(f"DEBUG keyReleased: keyCode={event.KeyCode}")
-    def disposing(self, event):
-        pass
+from com.sun.star.awt import XActionListener, XItemListener, XTextListener, XCallback
 
 
 # ---------------------------------------------------------------------------

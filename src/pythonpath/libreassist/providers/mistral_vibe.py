@@ -24,7 +24,7 @@ def buildArgs(prompt, sessionId=None, executable=EXECUTABLE):
     fullPrompt = f"{_ODT_HINT}\n\nUser request: {prompt}"
     args = [
         executable,
-        "--auto-approve",
+        "--trust",
         "--output", "json",
     ]
 
