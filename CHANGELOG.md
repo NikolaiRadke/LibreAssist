@@ -1,10 +1,5 @@
-# Release V1.0.3
-
-### Added
-- Mistral Vibe CLI (EXPERIMENTAL!)
-- Provider configuration via `providers.json` – add or customize providers without touching the code
-- "Open Provider Config" button in Settings for access to the config file
-- Chat prefix aliases are now configurable per provider
+# Release V1.0.5
 
 ### Bugfixes
-- Provider prefix matching in chat restored after registry refactor
+- Mistral Vibe is working again. New Vibe version needs renamed arguments.
+- Still working on a Linux/GTK Keyboard focus error.  
