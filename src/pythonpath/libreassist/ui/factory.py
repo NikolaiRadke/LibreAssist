@@ -46,6 +46,11 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
             panelWin = xUIElement.Window
             panelWin.Visible = True
 
+            # Explicitly create peer with ExtToolkit to ensure keyboard event routing
+            toolkit = self.ctx.ServiceManager.createInstance(
+                "com.sun.star.awt.ExtToolkit")
+            panelWin.createPeer(toolkit, None)
+
             height = self.createPanelContent(panelWin, url, xFrame)
             xUIElement.height = height
 
