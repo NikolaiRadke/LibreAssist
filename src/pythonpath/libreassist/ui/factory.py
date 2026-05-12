@@ -7,7 +7,7 @@ import unohelper
 from com.sun.star.ui import XUIElementFactory
 from libreassist import core, settings as lib_settings, i18n, document
 from .ui import LibreAssistPanel, getLocalizedString
-from .events import ActionEventHandler, ProviderChangeListener, TimeoutChangeListener, SaveAsListener, InstructionsChangeListener,
+from .events import ActionEventHandler, ProviderChangeListener, TimeoutChangeListener, SaveAsListener, InstructionsChangeListener
 
 
 class ElementFactory(unohelper.Base, XUIElementFactory):
