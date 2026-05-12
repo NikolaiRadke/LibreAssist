@@ -8,8 +8,8 @@ LibreAssist is a LibreOffice extension that brings AI-powered writing assistance
 **LibreOffice Extensions page**: https://extensions.libreoffice.org/en/extensions/show/99521
 
 🆕 What's new?  
-* **12.05.2026** **Release V1.0.4** with Mistral Vibe bugfix and no more windows flickerung afer AI changes.  
-    -- More news? Check the [newsblog](https://github.com/NikolaiRadke/LibreAssist/blob/main/NEWS.md).
+* **12.05.2026** Release **V1.1.0** with Track Changes support.  
+-- More news? Check the [newsblog](https://github.com/NikolaiRadke/LibreAssist/blob/main/NEWS.md).
 
 ## Features
 
