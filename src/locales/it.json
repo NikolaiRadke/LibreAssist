@@ -16,6 +16,7 @@
   "settings_timeout": "Timeout (secondi)",
   "settings_reset_session": "Reimposta sessione",
   "settings_clear_history": "Cancella cronologia",
+  "settings_track_changes": "Revisioni (solo Writer)",
   "back_button": "Torna alla chat",
   "error_model_not_found": "ERRORE: Modello non trovato. Controlla il nome del modello nelle impostazioni.",
   "error_rate_limit": "ERRORE: Limite di richieste superato. L'API è sovraccarica, riprova più tardi.",

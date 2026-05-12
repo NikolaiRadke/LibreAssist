@@ -1,8 +1,8 @@
-# Coming release V1.0.4
+# Release V1.1.0
 
-##- Features
-- No reload-flicker after AI changes anymore.   
+## Features
+- Added Track Changes support for Writer documents (opt-in via Settings)
 
 ### Bugfixes
-- Mistral Vibe is working again. New Vibe version needs renamed arguments.
-- Fixed Linux/GTK Keyboard focus error.  
+- Mistral Vibe postProcess bug fixed, sometimes documets got corrupted
+

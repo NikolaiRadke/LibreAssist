@@ -7,7 +7,7 @@ import unohelper
 from com.sun.star.ui import XUIElementFactory
 from libreassist import core, settings as lib_settings, i18n, document
 from .ui import LibreAssistPanel, getLocalizedString
-from .events import ActionEventHandler, ProviderChangeListener, TimeoutChangeListener, SaveAsListener, InstructionsChangeListener
+from .events import ActionEventHandler, ProviderChangeListener, TimeoutChangeListener, SaveAsListener, InstructionsChangeListener, TrackChangesChangeListener
 
 
 class ElementFactory(unohelper.Base, XUIElementFactory):
@@ -20,7 +20,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
     _SETTINGS_CONTROLS = ["ProviderLabel", "ProviderList", "TimeoutLabel", "TimeoutField",
                           "InstructionsLabel", "InstructionsField",
                           "ResetSessionButton", "ClearHistoryButton", "DeleteAllDataButton",
-                          "OpenProviderConfigButton"]
+                          "OpenProviderConfigButton", "TrackChangesCheckBox"]
     _ABOUT_CONTROLS = ["AboutLogo", "AboutText"]
 
     def __init__(self, ctx):
@@ -379,6 +379,18 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         openConfigModel.Label = getLocalizedString("settings_open_provider_config", "Open Provider Config")
         dialogModel.insertByName("OpenProviderConfigButton", openConfigModel)
 
+        # Track Changes checkbox
+        trackChangesModel = dialogModel.createInstance(
+            "com.sun.star.awt.UnoControlCheckBoxModel")
+        trackChangesModel.Name = "TrackChangesCheckBox"
+        trackChangesModel.PositionX = 10
+        trackChangesModel.PositionY = 340
+        trackChangesModel.Width = 130
+        trackChangesModel.Height = 15
+        trackChangesModel.Label = getLocalizedString("settings_track_changes", "Track Changes (Writer)")
+        trackChangesModel.State = 1 if globalSettings.get("track_changes_writer", False) else 0
+        dialogModel.insertByName("TrackChangesCheckBox", trackChangesModel)
+
     def _createAboutView(self, dialogModel):
         """Create about view components."""
     
@@ -429,6 +441,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
 
         # Custom Instructions change listener
         panelWin.getControl("InstructionsField").addTextListener(InstructionsChangeListener(self))
+        panelWin.getControl("TrackChangesCheckBox").addItemListener(TrackChangesChangeListener(self))
 
     def _initializeViewState(self, globalSettings, docSettings):
         """Initialize UI view state and control visibility."""

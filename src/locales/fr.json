@@ -16,6 +16,7 @@
   "settings_timeout": "Délai d'attente (secondes)",
   "settings_reset_session": "Réinitialiser la session",
   "settings_clear_history": "Effacer l'historique",
+  "settings_track_changes": "Suivi des modifications (Writer uniquement)",
   "back_button": "Retour au chat",
   "error_model_not_found": "ERREUR : Modèle introuvable. Veuillez vérifier le nom du modèle dans les paramètres.",
   "error_rate_limit": "ERREUR : Limite de requêtes dépassée. L'API est surchargée, veuillez réessayer plus tard.",

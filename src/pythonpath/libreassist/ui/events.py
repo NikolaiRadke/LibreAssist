@@ -3,6 +3,7 @@
 
 import importlib
 import uno
+import os
 import unohelper
 from com.sun.star.document import XDocumentEventListener
 from libreassist.i18n import t
@@ -110,6 +111,16 @@ class LLMCompletionCallback(unohelper.Base, XCallback):
                     dispatcher = ctx.ServiceManager.createInstance(
                         "com.sun.star.frame.DispatchHelper")
                     dispatcher.executeDispatch(frame, ".uno:Reload", "", 0, ())
+                    globalSettings = lib_settings.loadGlobalSettings()
+                    if (payload.get("isWriter") and
+                            globalSettings.get("track_changes_writer", False)):
+                        backupPath = payload.get("backupPath")
+                        if backupPath and os.path.exists(backupPath):
+                            prop = uno.createUnoStruct("com.sun.star.beans.PropertyValue")
+                            prop.Name = "URL"
+                            prop.Value = uno.systemPathToFileUrl(backupPath)
+                            dispatcher.executeDispatch(
+                                frame, ".uno:CompareDocuments", "", 0, (prop,))
                 except Exception as e:
                     print(f"Error reloading document: {e}")
             historyControl.setText(newHistory)
@@ -439,6 +450,25 @@ class InstructionsChangeListener(unohelper.Base, XTextListener):
             lib_settings.saveGlobalSettings(globalSettings)
         except Exception as e:
             print(f"Error saving instructions: {e}")
+
+    def disposing(self, event):
+        pass
+
+
+class TrackChangesChangeListener(unohelper.Base, XItemListener):
+    """Handles track changes checkbox."""
+
+    def __init__(self, factory):
+        self.factory = factory
+
+    def itemStateChanged(self, event):
+        try:
+            globalSettings = lib_settings.loadGlobalSettings()
+            checkbox = self.factory.panelWin.getControl("TrackChangesCheckBox")
+            globalSettings["track_changes_writer"] = (checkbox.getState() == 1)
+            lib_settings.saveGlobalSettings(globalSettings)
+        except Exception as e:
+            print(f"Error saving track changes setting: {e}")
 
     def disposing(self, event):
         pass

@@ -181,6 +181,9 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
             modTimeAfter    = os.stat(fullPath).st_mtime
             fileWasModified = (modTimeAfter != modTimeBefore)
 
+            if fileWasModified and hasattr(providerModule, 'postProcess'):
+                providerModule.postProcess(fullPath)
+
             displayName  = getDisplayNames().get(providerModule.NAME, "Assistant")
             responseText = f"{displayName}:\n{collectedText.strip()}"
 
@@ -238,6 +241,8 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
             "fileWasModified": fileWasModified,
             "docDir":          docDir,
             "frame":           frame,
+            "backupPath":      os.path.join(docDir, "backup" + os.path.splitext(filename)[1]),
+            "isWriter":        True,
         }
         asyncCb.addCallback(completionCallback, None)
 

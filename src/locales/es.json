@@ -16,6 +16,7 @@
   "settings_timeout": "Tiempo límite (segundos)",
   "settings_reset_session": "Restablecer sesión",
   "settings_clear_history": "Borrar historial",
+  "settings_track_changes": "Control de cambios (solo Writer)",
   "back_button": "Volver al chat",
   "error_model_not_found": "ERROR: Modelo no encontrado. Comprueba el nombre del modelo en la configuración.",
   "error_rate_limit": "ERROR: Límite de solicitudes superado. La API está sobrecargada, inténtalo de nuevo más tarde.",

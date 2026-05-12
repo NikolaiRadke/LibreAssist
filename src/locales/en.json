@@ -16,6 +16,7 @@
   "settings_timeout": "Timeout (seconds)",
   "settings_reset_session": "Reset Session",
   "settings_clear_history": "Clear History",
+  "settings_track_changes": "Track Changes (Writer only)",
   "back_button": "Back to Chat",
   "error_model_not_found": "ERROR: Model not found. Please check the model name in settings.",
   "error_rate_limit": "ERROR: Rate limit exceeded. The API is overloaded, please try again later.",

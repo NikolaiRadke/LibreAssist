@@ -278,7 +278,8 @@ def loadGlobalSettings():
         "discovered_providers": {},
         "default_provider": "claude_code",
         "timeout": 600,
-        "custom_instructions": ""
+        "custom_instructions": "",
+        "track_changes_writer": False
     }
     try:
         settingsFile = getGlobalSettingsFile()
