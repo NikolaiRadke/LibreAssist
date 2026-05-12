@@ -2,6 +2,7 @@
 
 ## 2026
 
+* **12.05.2026** **Release V1.1.0** with Track Changes support.
 * **12.05.2026** **Release V1.0.4** with Mistral Vibe bugfix and no more windows flickerung afer AI changes.
 * **11.05.2026** Still working on V1.0.4. You can try this version already, it fixes several bugs.      
 * **10.03.2026** **Release V1.0.3** with provider settings and support for Mistal Vibe.    
