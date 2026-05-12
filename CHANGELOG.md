@@ -1,6 +1,6 @@
-# Coming release V1.0.4
+# Release V1.0.4
 
-##- Features
+## Features
 - No reload-flicker after AI changes anymore.   
 
 ### Bugfixes
