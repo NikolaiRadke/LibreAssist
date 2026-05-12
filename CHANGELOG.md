@@ -5,4 +5,4 @@
 
 ### Bugfixes
 - Mistral Vibe is working again. New Vibe version needs renamed arguments.
-- Still working on a Linux/GTK Keyboard focus error.  
+- Fixed Linux/GTK Keyboard focus error.  
