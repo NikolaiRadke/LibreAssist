@@ -127,10 +127,6 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
     modTimeBefore = os.stat(fullPath).st_mtime
 
     frame = doc.getCurrentController().getFrame()
-    frameName = frame.getName()
-    if not frameName:
-        frameName = f"la_{id(frame)}"
-        frame.setName(frameName)
 
     settingsData = settings.loadSettingsForDir(docDir, fullPath)
     sessionId = settingsData.get("session_ids", {}).get(providerModule.NAME)
@@ -240,10 +236,8 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
         completionCallback.payload = {
             "response":        responseText,
             "fileWasModified": fileWasModified,
-            "url":             url,
-            "frameName":       frameName,
-            "doc":             doc,
             "docDir":          docDir,
+            "frame":           frame,
         }
         asyncCb.addCallback(completionCallback, None)
 

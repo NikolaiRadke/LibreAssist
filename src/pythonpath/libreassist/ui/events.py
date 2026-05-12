@@ -90,8 +90,6 @@ class LLMCompletionCallback(unohelper.Base, XCallback):
     def notify(self, data):
         """Runs on the Main-UNO-Thread – safe to call UNO APIs."""
         try:
-            import time
-
             payload         = self.payload or {}
             responseText    = payload.get("response") or payload.get("error") or t('error_general', error="No response")
             fileWasModified = payload.get("fileWasModified", False)
@@ -104,31 +102,22 @@ class LLMCompletionCallback(unohelper.Base, XCallback):
             self.panelWin.getControl("UndoButton").getModel().Enabled = docSettings.get("undo_available", False)
             self.panelWin.getControl("RedoButton").getModel().Enabled = docSettings.get("redo_available", False)
 
+            newHistory = self.historyBeforeResponse + responseText + "\n\n"
             if fileWasModified:
-                # Document was changed: close and reload in the correct frame.
-                # The sidebar panel will be recreated with the updated history.
-                url       = payload.get("url")
-                frameName = payload.get("frameName", "_default")
                 try:
-                    ctx     = uno.getComponentContext()
-                    desktop = ctx.ServiceManager.createInstance("com.sun.star.frame.Desktop")
-                    docToClose = payload.get("doc")
-                    if docToClose:
-                        docToClose.close(False)
-                    time.sleep(0.3)
-                    desktop.loadComponentFromURL(url, frameName, 0, ())
+                    frame = payload.get("frame")
+                    ctx = uno.getComponentContext()
+                    dispatcher = ctx.ServiceManager.createInstance(
+                        "com.sun.star.frame.DispatchHelper")
+                    dispatcher.executeDispatch(frame, ".uno:Reload", "", 0, ())
                 except Exception as e:
                     print(f"Error reloading document: {e}")
+            historyControl.setText(newHistory)
+            _scrollToEnd(historyControl, newHistory)
+            if docDir:
+                lib_settings.saveHistoryForDir(docDir, newHistory)
             else:
-                # No file change: update chat history display manually.
-                newHistory = self.historyBeforeResponse + responseText + "\n\n"
-                historyControl.setText(newHistory)
-                _scrollToEnd(historyControl, newHistory)
-                # History was already saved in _run(); save again in case of race.
-                if docDir:
-                    lib_settings.saveHistoryForDir(docDir, newHistory)
-                else:
-                    lib_settings.saveHistory(newHistory)
+                lib_settings.saveHistory(newHistory)
 
         except Exception as e:
             print(f"Error in LLMCompletionCallback.notify: {e}")
