@@ -13,7 +13,8 @@ LibreAssist is a LibreOffice extension that brings AI-powered writing assistance
 
 ## Features
 
-- 🤖 **Multi-Provider Support** - Works with Claude Code CLI and Codex CLI
+- 🤖 **Multi-Provider Support** - Works with Claude Code CLI, Codex CLI and Mistral Vibe CLI
+- 🔍 **Track Changes Support** - AI changes shown as tracked changes in Writer (opt-in)
 - 💬 **Session-Based Conversations** - Maintains context across multiple interactions
 - ✏️ **Direct Document Manipulation** - AI writes directly into your document, even design elements
 - ↩️ **Undo/Redo System** - Full backup and restore capabilities for AI changes
