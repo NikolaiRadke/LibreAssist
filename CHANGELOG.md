@@ -1,8 +1,5 @@
-# Release V1.1.0
-
-## Features
-- Added Track Changes support for Writer documents (opt-in via Settings)
+# Release V1.1.1
 
 ### Bugfixes
-- Mistral Vibe postProcess bug fixed, sometimes documets got corrupted
+* "Fixed Codex CLI sandbox mode to use danger-full-access, bypassing bwrap in Linux.
 

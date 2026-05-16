@@ -9,7 +9,8 @@ NEEDS_NODEJS = True
 def buildArgs(prompt, sessionId=None, executable=EXECUTABLE):
     args = []
     # Don't add executable - handled by provider_base for Node.js providers
-    args.extend(["exec", "--skip-git-repo-check", "--full-auto", "--json", prompt])
+    args.extend(["exec", "--skip-git-repo-check", "--full-auto", "--json",
+                 "-s", "danger-full-access", prompt])
     return args
 
 
