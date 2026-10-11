@@ -8,7 +8,7 @@ import uno
 
 from .i18n import t
 from .document import getCurrentDocument
-from . import discovery, provider_base, settings, backup
+from . import discovery, provider_base, settings, backup, sandbox
 
 
 # ---------------------------------------------------------------------------
@@ -129,8 +129,26 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
 
     modTimeBefore = os.stat(fullPath).st_mtime
 
-    # Snapshot the working directory to detect newly created documents
-    dirBefore = set(os.listdir(directory))
+    globalSettings = settings.loadGlobalSettings()
+    useSandbox     = globalSettings.get("sandbox", True) and sandbox.isAvailable()
+
+    if useSandbox:
+        # The agent never sees the document's directory: it works on a private
+        # copy in docDir/work, inside a sandbox with its own HOME
+        sandboxHome = settings.getSandboxHome()
+        runDir      = os.path.join(docDir, "work")
+        try:
+            stagedPath   = sandbox.stageDocument(fullPath, runDir)
+            stagedBefore = os.stat(stagedPath)
+        except OSError as e:
+            completionCallback.payload = {"error": t('error_general', error=str(e)), "fileWasModified": False}
+            _fireCallback(completionCallback)
+            return
+    else:
+        sandboxHome = None
+        runDir      = directory
+        # Snapshot the working directory to detect newly created documents
+        dirBefore = set(os.listdir(directory))
 
     frame = doc.getCurrentController().getFrame()
     frameName = frame.getName()
@@ -141,7 +159,6 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
     sessionId = settingsData.get("session_ids", {}).get(providerModule.NAME)
     timeout   = settingsData.get("timeout", 600)
 
-    globalSettings     = settings.loadGlobalSettings()
     customInstructions = globalSettings.get("custom_instructions", "").strip()
 
     basePrompt = (
@@ -182,29 +199,37 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
             result = provider_base.executeProvider(
                 providerModule,
                 fullPrompt,
-                directory,
+                runDir,
                 sessionId=sessionId,
                 timeout=timeout,
-                onProcess=_onProcess
+                onProcess=_onProcess,
+                sandboxHome=sandboxHome
             )
             collectedText  = result.get("response", "")
             newSessionId   = result.get("sessionId")
 
+            if useSandbox:
+                # Copy the edited document and new ODF files back from the work dir
+                newFiles = sandbox.collectResults(
+                    fullPath, stagedPath, runDir, stagedBefore, _ODF_EXTS)
+            else:
+                dirAfter = set(os.listdir(directory))
+                newFiles = [
+                    os.path.join(directory, f)
+                    for f in (dirAfter - dirBefore)
+                    if os.path.splitext(f)[1].lower() in _ODF_EXTS
+                ]
+
             modTimeAfter    = os.stat(fullPath).st_mtime
             fileWasModified = (modTimeAfter != modTimeBefore)
-
-            dirAfter = set(os.listdir(directory))
-            newFiles = [
-                os.path.join(directory, f)
-                for f in (dirAfter - dirBefore)
-                if os.path.splitext(f)[1].lower() in _ODF_EXTS
-            ]
 
             if fileWasModified and hasattr(providerModule, 'postProcess'):
                 providerModule.postProcess(fullPath)
 
             displayName  = getDisplayNames().get(providerModule.NAME, "Assistant")
             responseText = f"{displayName}:\n{collectedText.strip()}"
+            if useSandbox and ("/login" in collectedText or "not logged in" in collectedText.lower()):
+                responseText += "\n\n" + _sandboxLoginHint(providerModule, sandboxHome)
 
         except TimeoutError:
             responseText = t('error_timeout')
@@ -224,6 +249,8 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
                     responseText = t('error_no_capacity')
                 elif "authentication" in stderrLower or "unauthorized" in stderrLower:
                     responseText = t('error_authentication')
+                    if useSandbox:
+                        responseText += "\n\n" + _sandboxLoginHint(providerModule, sandboxHome)
                 else:
                     lines    = stderr.split('\n')
                     filtered = '\n'.join(lines[:10] + ['... (truncated) ...'] + lines[-10:]) if len(lines) > 30 else stderr
@@ -288,6 +315,16 @@ def callLLMAsync(providerModule, userPrompt, currentHistory, completionCallback,
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
+
+
+def _sandboxLoginHint(providerModule, sandboxHome):
+    """Explain how to log the provider in inside the sandbox's private HOME."""
+    exe = getattr(providerModule, "EXECUTABLE", "claude")
+    loginCmd = {"claude": "claude /login", "codex": "codex login"}.get(exe, exe)
+    return ("LibreAssist runs the agent in a sandbox with its own login, separate "
+            "from your normal one. Log in once from a terminal:\n"
+            f"HOME='{sandboxHome}' {loginCmd}\n"
+            "(The sandbox can be switched off in Settings.)")
 
 
 def _fireCallback(completionCallback):

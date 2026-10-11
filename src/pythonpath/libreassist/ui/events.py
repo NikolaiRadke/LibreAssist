@@ -486,6 +486,25 @@ class TrackChangesChangeListener(unohelper.Base, XItemListener):
         pass
 
 
+class SandboxChangeListener(unohelper.Base, XItemListener):
+    """Handles sandbox checkbox."""
+
+    def __init__(self, factory):
+        self.factory = factory
+
+    def itemStateChanged(self, event):
+        try:
+            globalSettings = lib_settings.loadGlobalSettings()
+            checkbox = self.factory.panelWin.getControl("SandboxCheckBox")
+            globalSettings["sandbox"] = (checkbox.getState() == 1)
+            lib_settings.saveGlobalSettings(globalSettings)
+        except Exception as e:
+            print(f"Error saving sandbox setting: {e}")
+
+    def disposing(self, event):
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Document event listeners
 # ---------------------------------------------------------------------------

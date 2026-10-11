@@ -64,6 +64,7 @@ For use with API Providers, there are many ohter extensions, like [LibreThinker]
 - **Python** 3.8+ (embedded in LibreOffice)
 - **At least one supported CLI provider** (Claude Code or Codex CLI)
 - **Node.js v20+** (required for Codex CLI only)
+- **bubblewrap** (optional, Linux only; enables the [agent sandbox](#agent-sandbox-linux))
 
 ## Installation
 
@@ -136,6 +137,7 @@ Click the **⚙ Settings** button to configure:
 - **Custom Instructions** - Instructions included in every request
 - **Open Provider Config** - Edit `providers.json` to add or customize providers
 - **Delete All Data** - Remove all chat history, backups and settings
+- **Sandbox agent (Linux)** - Run the agent in a bubblewrap sandbox (on by default when available)
 
 ## Configuration
 
@@ -147,6 +149,26 @@ LibreAssist automatically discovers installed CLI providers by searching:
 - npm global directories
 - nvm Node.js installations
 - Common installation locations
+
+### Agent Sandbox (Linux)
+
+The CLI agents run with their permission prompts disabled, so they can execute any command without asking. A prompt injection hidden in a document from someone else (white text, comments, metadata) could therefore make the agent read or delete your files.
+
+On Linux, if [bubblewrap](https://github.com/containers/bubblewrap) (`bwrap`) is installed, LibreAssist runs the agent in a sandbox. The agent sees only:
+
+- a private copy of the current document (the edited copy is written back afterwards, and new `.odt`/`.ods`/`.odp`/`.odg` files are copied next to the original without overwriting existing files)
+- system directories and the agent's own installation, read-only
+- a private home directory, `<LibreOffice profile>/libreassist/sandbox-home`
+
+Your real home directory, other documents, `/tmp` and `/dev/shm` are not visible. Network access stays on, since the agent needs its API.
+
+Because the sandbox has its own home directory, the agent needs to be logged in once more. LibreAssist prints the exact command when needed, for example:
+
+```bash
+HOME="$HOME/.config/libreoffice/4/user/libreassist/sandbox-home" claude /login
+```
+
+Alternatively, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `MISTRAL_API_KEY` are passed through to the sandbox. The sandbox can be switched off in Settings. On Windows, macOS and Linux without bubblewrap, nothing changes.
 
 ## Links
 

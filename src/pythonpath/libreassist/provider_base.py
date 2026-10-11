@@ -5,6 +5,8 @@
 import subprocess
 import os
 
+from libreassist import sandbox
+
 
 def _resolveExecutable(providerModule):
     """
@@ -29,7 +31,8 @@ def _resolveExecutable(providerModule):
     return providerModule.EXECUTABLE
 
 
-def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=600, onProcess=None):
+def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=600, onProcess=None,
+                    sandboxHome=None):
     """
     Generic executor for any CLI provider.
     Uses buildArgs() and extractResponse() from the provider module.
@@ -42,6 +45,8 @@ def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=
         sessionId:      Optional session ID for persistent providers
         timeout:        Timeout in seconds (default: 600)
         onProcess:      Optional callback(process) called after Popen, before communicate()
+        sandboxHome:    If set, run inside the bubblewrap sandbox with this private HOME;
+                        workingDir is then the only writable directory the agent sees
 
     Returns:
         dict with 'response' (str) and 'sessionId' (str or None)
@@ -64,12 +69,20 @@ def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=
         args = providerModule.buildArgs(prompt, sessionId, executablePath)
         executable = executablePath
 
+    # Optionally confine the agent; see sandbox.py
+    env = None
+    if sandboxHome:
+        args, env = sandbox.buildCommand(
+            args, workingDir, sandboxHome,
+            extraRoPaths=getattr(providerModule, 'SANDBOX_RO_PATHS', ()))
     process = subprocess.Popen(
         args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        stdin=subprocess.DEVNULL,
         text=False,  # Binary read for UTF-8 safety
-        cwd=workingDir
+        cwd=workingDir,
+        env=env
     )
 
     # Pass process handle to caller before blocking on communicate()
