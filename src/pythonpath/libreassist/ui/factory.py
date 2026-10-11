@@ -5,9 +5,9 @@ import uno
 import unohelper
 
 from com.sun.star.ui import XUIElementFactory
-from libreassist import core, settings as lib_settings, i18n, document
+from libreassist import core, settings as lib_settings, i18n, document, sandbox
 from .ui import LibreAssistPanel, getLocalizedString
-from .events import ActionEventHandler, ProviderChangeListener, TimeoutChangeListener, SaveAsListener, InstructionsChangeListener, TrackChangesChangeListener
+from .events import ActionEventHandler, ProviderChangeListener, TimeoutChangeListener, SaveAsListener, InstructionsChangeListener, TrackChangesChangeListener, SandboxChangeListener
 
 
 class ElementFactory(unohelper.Base, XUIElementFactory):
@@ -20,7 +20,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
     _SETTINGS_CONTROLS = ["ProviderLabel", "ProviderList", "TimeoutLabel", "TimeoutField",
                           "InstructionsLabel", "InstructionsField",
                           "ResetSessionButton", "ClearHistoryButton", "DeleteAllDataButton",
-                          "OpenProviderConfigButton", "TrackChangesCheckBox"]
+                          "OpenProviderConfigButton", "TrackChangesCheckBox", "SandboxCheckBox"]
     _ABOUT_CONTROLS = ["AboutLogo", "AboutText"]
 
     def __init__(self, ctx):
@@ -391,6 +391,20 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         trackChangesModel.State = 1 if globalSettings.get("track_changes_writer", False) else 0
         dialogModel.insertByName("TrackChangesCheckBox", trackChangesModel)
 
+        # Sandbox checkbox (only selectable where bubblewrap is available)
+        sandboxModel = dialogModel.createInstance(
+            "com.sun.star.awt.UnoControlCheckBoxModel")
+        sandboxModel.Name = "SandboxCheckBox"
+        sandboxModel.PositionX = 10
+        sandboxModel.PositionY = 358
+        sandboxModel.Width = 130
+        sandboxModel.Height = 15
+        sandboxModel.Label = getLocalizedString("settings_sandbox", "Sandbox agent (Linux)")
+        sandboxModel.HelpText = getLocalizedString("settings_sandbox_tooltip", "")
+        sandboxModel.Enabled = sandbox.isAvailable()
+        sandboxModel.State = 1 if (sandbox.isAvailable() and globalSettings.get("sandbox", True)) else 0
+        dialogModel.insertByName("SandboxCheckBox", sandboxModel)
+
     def _createAboutView(self, dialogModel):
         """Create about view components."""
     
@@ -442,6 +456,7 @@ class ElementFactory(unohelper.Base, XUIElementFactory):
         # Custom Instructions change listener
         panelWin.getControl("InstructionsField").addTextListener(InstructionsChangeListener(self))
         panelWin.getControl("TrackChangesCheckBox").addItemListener(TrackChangesChangeListener(self))
+        panelWin.getControl("SandboxCheckBox").addItemListener(SandboxChangeListener(self))
 
     def _initializeViewState(self, globalSettings, docSettings):
         """Initialize UI view state and control visibility."""

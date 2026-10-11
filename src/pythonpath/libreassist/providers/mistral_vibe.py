@@ -4,6 +4,9 @@
 NAME = "mistral_vibe"
 EXECUTABLE = "vibe"
 
+# uv-managed Python interpreters used by the vibe venv (exposed read-only in the sandbox)
+SANDBOX_RO_PATHS = ["~/.local/share/uv/python"]
+
 _ODT_HINT = (
     "The file you are working with is an ODF document (e.g. .odt, .ods, .odp, .odg), "
     "which is a ZIP archive. "

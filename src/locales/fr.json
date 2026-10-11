@@ -17,6 +17,8 @@
   "settings_reset_session": "Réinitialiser la session",
   "settings_clear_history": "Effacer l'historique",
   "settings_track_changes": "Suivi des modifications (Writer uniquement)",
+  "settings_sandbox": "Bac à sable (Linux)",
+  "settings_sandbox_tooltip": "Exécute l'agent IA dans un bac à sable bubblewrap : il ne voit qu'une copie de ce document, ni votre dossier personnel ni vos autres fichiers. Nécessite une connexion séparée une fois.",
   "back_button": "Retour au chat",
   "error_model_not_found": "ERREUR : Modèle introuvable. Veuillez vérifier le nom du modèle dans les paramètres.",
   "error_rate_limit": "ERREUR : Limite de requêtes dépassée. L'API est surchargée, veuillez réessayer plus tard.",

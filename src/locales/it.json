@@ -17,6 +17,8 @@
   "settings_reset_session": "Reimposta sessione",
   "settings_clear_history": "Cancella cronologia",
   "settings_track_changes": "Revisioni (solo Writer)",
+  "settings_sandbox": "Sandbox agente (Linux)",
+  "settings_sandbox_tooltip": "Esegue l'agente IA in una sandbox bubblewrap: vede solo una copia di questo documento, non la tua cartella home né altri file. Richiede un accesso separato una volta.",
   "back_button": "Torna alla chat",
   "error_model_not_found": "ERRORE: Modello non trovato. Controlla il nome del modello nelle impostazioni.",
   "error_rate_limit": "ERRORE: Limite di richieste superato. L'API è sovraccarica, riprova più tardi.",

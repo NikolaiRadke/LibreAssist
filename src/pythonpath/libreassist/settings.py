@@ -37,6 +37,23 @@ def getLibreAssistDir():
         return None
 
 
+SANDBOX_HOME_NAME = "sandbox-home"
+
+
+def getSandboxHome():
+    """
+    Get the private HOME directory used by the sandboxed agents.
+    Holds their logins and sessions, separate from the user's real HOME.
+    Returns: path string or None
+    """
+    baseDir = getLibreAssistDir()
+    if not baseDir:
+        return None
+    homeDir = os.path.join(baseDir, SANDBOX_HOME_NAME)
+    os.makedirs(homeDir, exist_ok=True)
+    return homeDir
+
+
 def getDocSettingsDir():
     """
     Get the settings directory for the current document (hash-based).
@@ -279,7 +296,8 @@ def loadGlobalSettings():
         "default_provider": "claude_code",
         "timeout": 600,
         "custom_instructions": "",
-        "track_changes_writer": False
+        "track_changes_writer": False,
+        "sandbox": True
     }
     try:
         settingsFile = getGlobalSettingsFile()
@@ -325,7 +343,7 @@ def cleanupOrphanedDirs():
         import shutil
         for dirName in os.listdir(baseDir):
             dirPath = os.path.join(baseDir, dirName)
-            if not os.path.isdir(dirPath):
+            if not os.path.isdir(dirPath) or dirName == SANDBOX_HOME_NAME:
                 continue
             settingsFile = os.path.join(dirPath, "settings.json")
             if not os.path.exists(settingsFile):
