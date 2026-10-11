@@ -49,20 +49,26 @@ def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=
     executablePath = _resolveExecutable(providerModule)
 
     if hasattr(providerModule, 'NEEDS_NODEJS') and providerModule.NEEDS_NODEJS:
-        from libreassist import discovery
-        nodePath = discovery.findNodeJS()
-
-        if not nodePath:
-            raise RuntimeError("Node.js v20+ not found. Codex CLI requires Node.js.")
-
-        # Build args without executable, then prepend executable
+        # Build args without executable, then prepend the launcher
         args = providerModule.buildArgs(prompt, sessionId, None)
-        args = [executablePath] + args
-        executable = nodePath
+
+        if _isNodeScript(executablePath):
+            # Run the script with the discovered Node.js instead of relying on
+            # its "#!/usr/bin/env node" line, which picks whatever node is
+            # first in LibreOffice's PATH (often none or an old one)
+            from libreassist import discovery
+            nodePath = discovery.findNodeJS()
+
+            if not nodePath:
+                raise RuntimeError("Node.js v20+ not found. Codex CLI requires Node.js.")
+
+            args = [nodePath, executablePath] + args
+        else:
+            # Native binary (e.g. Homebrew) or Windows .cmd shim: run directly
+            args = [executablePath] + args
 
     else:
         args = providerModule.buildArgs(prompt, sessionId, executablePath)
-        executable = executablePath
 
     process = subprocess.Popen(
         args,
@@ -106,3 +112,16 @@ def executeProvider(providerModule, prompt, workingDir, sessionId=None, timeout=
         raise RuntimeError(stderr.strip() or f"Provider exited with code {returncode}")
 
     return providerModule.extractResponse(rawOutput, stderr)
+
+
+def _isNodeScript(path):
+    """
+    Return True if path is a script with a node shebang line
+    (e.g. the codex.js entry point an npm global install links to).
+    """
+    try:
+        with open(path, 'rb') as f:
+            firstLine = f.readline(256)
+        return firstLine.startswith(b"#!") and b"node" in firstLine
+    except OSError:
+        return False
